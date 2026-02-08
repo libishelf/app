@@ -1,33 +1,94 @@
 <!DOCTYPE html>
-<html>
-<head><script src="https://cdn.tailwindcss.com"></script></head>
-<body class="p-8 bg-gray-50 font-sans">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-slate-800">Book Catalog</h1>
-        <button class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-indigo-700">+ Add New Book</button>
-    </div>
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <table class="w-full text-left">
-            <thead class="bg-gray-50 text-gray-600 text-sm uppercase">
-                <tr>
-                    <th class="px-6 py-4">Title</th>
-                    <th class="px-6 py-4">Author</th>
-                    <th class="px-6 py-4">Status</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100 text-gray-700">
-                <tr>
-                    <td class="px-6 py-4 font-medium">The Great Gatsby</td>
-                    <td class="px-6 py-4 text-gray-500">F. Scott Fitzgerald</td>
-                    <td class="px-6 py-4"><span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">In Stock</span></td>
-                </tr>
-                <tr>
-                    <td class="px-6 py-4 font-medium">1984</td>
-                    <td class="px-6 py-4 text-gray-500">George Orwell</td>
-                    <td class="px-6 py-4"><span class="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs">Lent Out</span></td>
-                </tr>
-            </tbody>
-        </table>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBTVSCflCLlaacMplOxMa1HmRVYSg9WPBI",
+            authDomain: "libishelf-38fa6.firebaseapp.com",
+            projectId: "libishelf-38fa6",
+            storageBucket: "libishelf-38fa6.firebasestorage.app",
+            messagingSenderId: "778087006231",
+            appId: "1:778087006231:web:a3ecf2304d82419926dc52",
+            measurementId: "G-M08N81QJ35"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        async function start() {
+            try {
+                await signInAnonymously(auth);
+                listenForBooks();
+            } catch (err) {
+                showStatus("Connection Error: " + err.message, "red");
+            }
+        }
+
+        window.addNewBook = async () => {
+            const title = document.getElementById('bookTitle').value;
+            const author = document.getElementById('bookAuthor').value;
+            if (!title || !author) return;
+
+            try {
+                await addDoc(collection(db, "library_books"), {
+                    title, author, status: 'Available', createdAt: serverTimestamp()
+                });
+                showStatus("Book added to cloud!", "green");
+                document.getElementById('bookTitle').value = '';
+                document.getElementById('bookAuthor').value = '';
+            } catch (e) {
+                showStatus("Save Failed: " + e.message, "red");
+            }
+        };
+
+        function listenForBooks() {
+            onSnapshot(collection(db, "library_books"), (snapshot) => {
+                const list = document.getElementById('bookTableBody');
+                list.innerHTML = ''; 
+                snapshot.forEach((doc) => {
+                    const b = doc.data();
+                    list.innerHTML += `<tr class="border-b">
+                        <td class="px-6 py-4">${b.title}</td>
+                        <td class="px-6 py-4">${b.author}</td>
+                        <td class="px-6 py-4 text-green-600 font-bold">In Library</td>
+                    </tr>`;
+                });
+            });
+        }
+
+        function showStatus(msg, color) {
+            const el = document.getElementById('statusBox');
+            el.innerText = msg;
+            el.className = `mb-4 p-3 rounded text-sm font-bold bg-${color}-100 text-${color}-700`;
+        }
+
+        start();
+    </script>
+</head>
+<body class="p-8 bg-gray-50">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">Book Catalog</h1>
+        <div id="statusBox" class="hidden"></div>
+        <div class="bg-white p-6 rounded-xl shadow-sm border mb-8 flex gap-4">
+            <input id="bookTitle" type="text" placeholder="Title" class="flex-1 border p-2 rounded">
+            <input id="bookAuthor" type="text" placeholder="Author" class="flex-1 border p-2 rounded">
+            <button onclick="addNewBook()" class="bg-indigo-600 text-white px-6 py-2 rounded font-bold">Add Book</button>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <table class="w-full text-left">
+                <thead class="bg-gray-50 border-b">
+                    <tr><th class="px-6 py-4">Title</th><th class="px-6 py-4">Author</th><th class="px-6 py-4">Status</th></tr>
+                </thead>
+                <tbody id="bookTableBody"></tbody>
+            </table>
+        </div>
     </div>
 </body>
 </html>
