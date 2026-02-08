@@ -1,20 +1,84 @@
 <!DOCTYPE html>
-<html>
-<head><script src="https://cdn.tailwindcss.com"></script></head>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBTVSCflCLlaacMplOxMa1HmRVYSg9WPBI",
+            authDomain: "libishelf-38fa6.firebaseapp.com",
+            projectId: "libishelf-38fa6",
+            storageBucket: "libishelf-38fa6.firebasestorage.app",
+            messagingSenderId: "778087006231",
+            appId: "1:778087006231:web:a3ecf2304d82419926dc52",
+            measurementId: "G-M08N81QJ35"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // This function listens to your "library_books" collection and updates the count!
+        function syncStats() {
+            onSnapshot(collection(db, "library_books"), (snapshot) => {
+                document.getElementById('total-books').innerText = snapshot.size.toLocaleString();
+            });
+            
+            onSnapshot(collection(db, "loans"), (snapshot) => {
+                document.getElementById('checked-out').innerText = snapshot.size.toLocaleString();
+            });
+        }
+
+        window.onload = syncStats;
+    </script>
+</head>
 <body class="p-8 bg-gray-50 font-sans">
-    <h1 class="text-2xl font-bold text-slate-800 mb-6">Library Overview</h1>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <p class="text-gray-500 text-sm uppercase">Total Books</p>
-            <h3 class="text-4xl font-bold text-indigo-600">1,250</h3>
-        </div>
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <p class="text-gray-500 text-sm uppercase">Checked Out</p>
-            <h3 class="text-4xl font-bold text-emerald-600">45</h3>
-        </div>
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <p class="text-gray-500 text-sm uppercase">Overdue</p>
-            <h3 class="text-4xl font-bold text-red-500">3</h3>
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-10">
+            <h1 class="text-3xl font-extrabold text-slate-800">Library Overview</h1>
+            <p class="text-slate-500">Real-time stats from your LibiShelf cloud database.</p>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Total Books Card -->
+            <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between h-48">
+                <div>
+                    <div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5S19.832 5.477 21 6.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                    </div>
+                    <p class="text-gray-500 text-sm font-bold uppercase tracking-wider">Total Books</p>
+                </div>
+                <h3 id="total-books" class="text-5xl font-black text-slate-900 tracking-tight">0</h3>
+            </div>
+
+            <!-- Checked Out Card -->
+            <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between h-48">
+                <div>
+                    <div class="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                    </div>
+                    <p class="text-gray-500 text-sm font-bold uppercase tracking-wider">Active Loans</p>
+                </div>
+                <h3 id="checked-out" class="text-5xl font-black text-slate-900 tracking-tight">0</h3>
+            </div>
+
+            <!-- System Health Card -->
+            <div class="bg-indigo-600 p-8 rounded-3xl shadow-lg shadow-indigo-200 flex flex-col justify-between h-48 text-white">
+                <div>
+                    <p class="text-indigo-200 text-sm font-bold uppercase tracking-wider">Cloud Status</p>
+                    <h3 class="text-2xl font-bold mt-2">All Systems Online</h3>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                    <span class="text-indigo-100 text-sm font-medium">Synced with Firestore</span>
+                </div>
+            </div>
         </div>
     </div>
 </body>
