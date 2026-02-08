@@ -1,26 +1,110 @@
 <!DOCTYPE html>
-<html>
-<head><script src="https://cdn.tailwindcss.com"></script></head>
-<body class="p-8 bg-gray-50 font-sans">
-    <h1 class="text-2xl font-bold text-slate-800 mb-6">Lending Desk</h1>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-            <h2 class="text-lg font-bold mb-4 text-indigo-700">Check Out</h2>
-            <div class="space-y-4">
-                <input type="text" placeholder="Person ID / Name" class="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500">
-                <input type="text" placeholder="Book ISBN" class="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500">
-                <button class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">Process Loan</button>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lending Desk - LibiShelf</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Your specific Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBTVSCflCLlaacMplOxMa1HmRVYSg9WPBI",
+            authDomain: "libishelf-38fa6.firebaseapp.com",
+            projectId: "libishelf-38fa6",
+            storageBucket: "libishelf-38fa6.firebasestorage.app",
+            messagingSenderId: "778087006231",
+            appId: "1:778087006231:web:a3ecf2304d82419926dc52",
+            measurementId: "G-M08N81QJ35"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // CHECK OUT A BOOK
+        window.processLoan = async () => {
+            const name = document.getElementById('personName').value;
+            const isbn = document.getElementById('bookIsbn').value;
+
+            if(!name || !isbn) {
+                showStatus("Please fill out both fields!", "red");
+                return;
+            }
+
+            try {
+                await addDoc(collection(db, "loans"), {
+                    person: name,
+                    isbn: isbn,
+                    date: serverTimestamp(),
+                    status: 'Active'
+                });
+                showStatus(`Success! Book lent to ${name}`, "green");
+                document.getElementById('personName').value = '';
+                document.getElementById('bookIsbn').value = '';
+            } catch (e) { 
+                console.error(e);
+                showStatus("Error saving to database.", "red");
+            }
+        };
+
+        // UI HELPER
+        function showStatus(msg, color) {
+            const statusDiv = document.getElementById('statusMsg');
+            statusDiv.innerText = msg;
+            statusDiv.className = `mt-4 p-3 rounded-lg text-sm font-medium bg-${color}-100 text-${color}-700`;
+            setTimeout(() => { statusDiv.className = "hidden"; }, 4000);
+        }
+    </script>
+</head>
+<body class="p-4 md:p-8 bg-gray-50 font-sans min-h-screen">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-3xl font-extrabold text-slate-800 mb-2">Lending Desk</h1>
+        <p class="text-gray-500 mb-8">Manage book check-outs and returns here.</p>
+        
+        <div class="bg-white p-6 md:p-10 rounded-3xl shadow-xl border border-gray-100">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="bg-indigo-100 p-2 rounded-lg text-indigo-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                </div>
+                <h2 class="text-xl font-bold text-gray-800">New Loan (Check Out)</h2>
             </div>
+
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-2 tracking-wider">Student Name</label>
+                    <input id="personName" type="text" placeholder="Who is borrowing the book?" 
+                           class="w-full border border-gray-200 rounded-xl p-4 outline-none focus:ring-2 focus:ring-indigo-500 transition-all bg-gray-50 focus:bg-white">
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-2 tracking-wider">Book ISBN / Identifier</label>
+                    <input id="bookIsbn" type="text" placeholder="Scan or type the book code" 
+                           class="w-full border border-gray-200 rounded-xl p-4 outline-none focus:ring-2 focus:ring-indigo-500 transition-all bg-gray-50 focus:bg-white">
+                </div>
+
+                <button onclick="processLoan()" 
+                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-indigo-200 transition-all active:scale-[0.98]">
+                    Confirm Loan
+                </button>
+            </div>
+
+            <div id="statusMsg" class="hidden"></div>
         </div>
-        <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
-            <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
+
+        <!-- Quick Info -->
+        <div class="mt-8 grid grid-cols-2 gap-4">
+            <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                <p class="text-blue-700 font-bold text-sm">Pro-Tip</p>
+                <p class="text-blue-600 text-xs mt-1">Make sure you have set your Firestore rules to 'Test Mode' in the Firebase console.</p>
             </div>
-            <h2 class="text-lg font-bold mb-2">Check In</h2>
-            <p class="text-gray-500 text-sm mb-6">Ready to return a book? Scan the code below.</p>
-            <input type="text" placeholder="Scan ISBN..." class="w-full border rounded-lg p-3 text-center text-lg">
+            <div class="bg-amber-50 p-4 rounded-2xl border border-amber-100">
+                <p class="text-amber-700 font-bold text-sm">Security</p>
+                <p class="text-amber-600 text-xs mt-1">This page uses Anonymous Auth to keep your data safe while testing.</p>
+            </div>
         </div>
     </div>
 </body>
