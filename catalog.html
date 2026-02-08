@@ -2,12 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <title>LibiShelf + AWS S3 Catalog</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
+        // --- AWS CONFIGURATION ---
+        // EDIT THESE TWO LINES WITH YOUR AWS DETAILS
+        const S3_BUCKET_NAME = "YOUR-BUCKET-NAME"; 
+        const REGION = "us-east-1"; 
+        
         const firebaseConfig = {
             apiKey: "AIzaSyBTVSCflCLlaacMplOxMa1HmRVYSg9WPBI",
             authDomain: "libishelf-38fa6.firebaseapp.com",
@@ -27,24 +33,72 @@
                 await signInAnonymously(auth);
                 listenForBooks();
             } catch (err) {
-                showStatus("Connection Error: " + err.message, "red");
+                showStatus("Auth Error: " + err.message, "red");
+            }
+        }
+
+        // UPLOAD TO AWS S3
+        async function uploadToS3(file) {
+            // We create a unique name so images don't overwrite each other
+            const fileName = `covers/${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
+            const uploadUrl = `https://${S3_BUCKET_NAME}.s3.${REGION}.amazonaws.com/${fileName}`;
+
+            try {
+                const response = await fetch(uploadUrl, {
+                    method: 'PUT',
+                    body: file,
+                    headers: {
+                        'Content-Type': file.type
+                    }
+                });
+
+                if (response.ok) {
+                    return uploadUrl; // This link goes into Firebase
+                } else {
+                    const errorText = await response.text();
+                    console.error("S3 Error Response:", errorText);
+                    throw new Error("S3 Upload Failed. Check CORS and Public Access.");
+                }
+            } catch (err) {
+                console.error("Upload Error:", err);
+                throw err;
             }
         }
 
         window.addNewBook = async () => {
             const title = document.getElementById('bookTitle').value;
             const author = document.getElementById('bookAuthor').value;
-            if (!title || !author) return;
+            const fileInput = document.getElementById('bookCover');
+            const file = fileInput.files[0];
+            const btn = document.getElementById('saveBtn');
+
+            if (!title || !author) return showStatus("Title and Author required!", "red");
+
+            btn.disabled = true;
+            btn.innerText = "Uploading to AWS...";
 
             try {
+                let imageUrl = "";
+                if (file) {
+                    imageUrl = await uploadToS3(file);
+                }
+
+                // Save everything to the Firebase Database
                 await addDoc(collection(db, "library_books"), {
-                    title, author, status: 'Available', createdAt: serverTimestamp()
+                    title,
+                    author,
+                    cover: imageUrl,
+                    status: 'Available',
+                    createdAt: serverTimestamp()
                 });
-                showStatus("Book added to cloud!", "green");
-                document.getElementById('bookTitle').value = '';
-                document.getElementById('bookAuthor').value = '';
+
+                showStatus("Success! Book stored in AWS & Firebase.", "green");
+                document.getElementById('addBookForm').reset();
             } catch (e) {
-                showStatus("Save Failed: " + e.message, "red");
+                showStatus("Error: " + e.message, "red");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Add Book";
             }
         };
 
@@ -54,11 +108,14 @@
                 list.innerHTML = ''; 
                 snapshot.forEach((doc) => {
                     const b = doc.data();
-                    list.innerHTML += `<tr class="border-b">
-                        <td class="px-6 py-4">${b.title}</td>
-                        <td class="px-6 py-4">${b.author}</td>
-                        <td class="px-6 py-4 text-green-600 font-bold">In Library</td>
-                    </tr>`;
+                    const img = b.cover ? `<img src="${b.cover}" class="w-12 h-16 object-cover rounded shadow border">` : `<div class="w-12 h-16 bg-gray-200 rounded flex items-center justify-center text-[8px] text-gray-400">No Image</div>`;
+                    list.innerHTML += `
+                        <tr class="border-b hover:bg-slate-50 transition-colors">
+                            <td class="p-4">${img}</td>
+                            <td class="p-4 font-semibold text-slate-800">${b.title}</td>
+                            <td class="p-4 text-slate-600">${b.author}</td>
+                            <td class="p-4"><span class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-[10px] font-bold uppercase">In Library</span></td>
+                        </tr>`;
                 });
             });
         }
@@ -66,25 +123,49 @@
         function showStatus(msg, color) {
             const el = document.getElementById('statusBox');
             el.innerText = msg;
-            el.className = `mb-4 p-3 rounded text-sm font-bold bg-${color}-100 text-${color}-700`;
+            el.className = `mb-4 p-4 rounded-xl text-sm font-bold bg-${color}-50 text-${color}-700 border border-${color}-200 block`;
+            if(color === "green") setTimeout(() => el.className = "hidden", 3000);
         }
 
         start();
     </script>
 </head>
-<body class="p-8 bg-gray-50">
-    <div class="max-w-4xl mx-auto">
-        <h1 class="text-2xl font-bold mb-6">Book Catalog</h1>
+<body class="bg-slate-50 min-h-screen p-8 font-sans">
+    <div class="max-w-5xl mx-auto">
+        <header class="mb-8 border-b border-slate-200 pb-6">
+            <h1 class="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                <span class="bg-orange-500 text-white p-1.5 rounded-lg text-lg">AWS</span> LibiShelf Catalog
+            </h1>
+            <p class="text-slate-500 mt-1">Multi-cloud inventory management system.</p>
+        </header>
+
         <div id="statusBox" class="hidden"></div>
-        <div class="bg-white p-6 rounded-xl shadow-sm border mb-8 flex gap-4">
-            <input id="bookTitle" type="text" placeholder="Title" class="flex-1 border p-2 rounded">
-            <input id="bookAuthor" type="text" placeholder="Author" class="flex-1 border p-2 rounded">
-            <button onclick="addNewBook()" class="bg-indigo-600 text-white px-6 py-2 rounded font-bold">Add Book</button>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+
+        <form id="addBookForm" onsubmit="event.preventDefault();" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div>
+                <label class="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">Book Title</label>
+                <input id="bookTitle" type="text" placeholder="The Great Gatsby" class="w-full border p-2.5 rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-orange-500 transition-all">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">Author</label>
+                <input id="bookAuthor" type="text" placeholder="F. Scott Fitzgerald" class="w-full border p-2.5 rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-orange-500 transition-all">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">Cover (S3)</label>
+                <input id="bookCover" type="file" accept="image/*" class="text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 cursor-pointer">
+            </div>
+            <button id="saveBtn" onclick="addNewBook()" class="bg-orange-600 text-white p-3 rounded-xl font-bold hover:bg-orange-700 transition shadow-lg shadow-orange-100 active:scale-95">Add Book</button>
+        </form>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <table class="w-full text-left">
-                <thead class="bg-gray-50 border-b">
-                    <tr><th class="px-6 py-4">Title</th><th class="px-6 py-4">Author</th><th class="px-6 py-4">Status</th></tr>
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="p-4 text-xs font-bold text-slate-400 uppercase">Cover</th>
+                        <th class="p-4 text-xs font-bold text-slate-400 uppercase">Title</th>
+                        <th class="p-4 text-xs font-bold text-slate-400 uppercase">Author</th>
+                        <th class="p-4 text-xs font-bold text-slate-400 uppercase">Status</th>
+                    </tr>
                 </thead>
                 <tbody id="bookTableBody"></tbody>
             </table>
