@@ -7,9 +7,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        // Your specific Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyBTVSCflCLlaacMplOxMa1HmRVYSg9WPBI",
             authDomain: "libishelf-38fa6.firebaseapp.com",
@@ -22,8 +22,25 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const auth = getAuth(app);
 
-        // CHECK OUT A BOOK
+        let isLive = false;
+
+        onAuthStateChanged(auth, (user) => {
+            const statusIndicator = document.getElementById('cloud-status-dot');
+            if (user) {
+                isLive = true;
+                statusIndicator.className = "w-2 h-2 rounded-full bg-green-500 animate-pulse";
+                listenForLoans();
+            } else {
+                signInAnonymously(auth).catch(() => {
+                    isLive = false;
+                    statusIndicator.className = "w-2 h-2 rounded-full bg-amber-500";
+                    renderLocalLoans();
+                });
+            }
+        });
+
         window.processLoan = async () => {
             const name = document.getElementById('personName').value;
             const isbn = document.getElementById('bookIsbn').value;
@@ -33,79 +50,173 @@
                 return;
             }
 
+            const loanData = {
+                person: name,
+                isbn: isbn,
+                date: new Date().toISOString(),
+                status: 'Active'
+            };
+
             try {
-                await addDoc(collection(db, "loans"), {
-                    person: name,
-                    isbn: isbn,
-                    date: serverTimestamp(),
-                    status: 'Active'
-                });
+                if (isLive) {
+                    await addDoc(collection(db, "loans"), {
+                        ...loanData,
+                        date: serverTimestamp()
+                    });
+                }
+                saveLocal(loanData);
                 showStatus(`Success! Book lent to ${name}`, "green");
                 document.getElementById('personName').value = '';
                 document.getElementById('bookIsbn').value = '';
+                if (!isLive) renderLocalLoans();
             } catch (e) { 
-                console.error(e);
-                showStatus("Error saving to database.", "red");
+                saveLocal(loanData);
+                showStatus("Saved Locally (Offline)", "amber");
             }
         };
 
-        // UI HELPER
+        function saveLocal(loan) {
+            let local = JSON.parse(localStorage.getItem('libishelf_loans') || '[]');
+            local.unshift(loan);
+            localStorage.setItem('libishelf_loans', JSON.stringify(local.slice(0, 10)));
+        }
+
+        function renderLocalLoans() {
+            const list = document.getElementById('recentLoansList');
+            const local = JSON.parse(localStorage.getItem('libishelf_loans') || '[]');
+            if (local.length === 0) {
+                list.innerHTML = '<p class="text-center text-gray-400 text-sm py-10">No recent activity.</p>';
+                return;
+            }
+            
+            list.innerHTML = '';
+            local.forEach(data => {
+                list.innerHTML += `
+                    <div class="flex justify-between items-center p-3 border-b last:border-0 bg-amber-50/30">
+                        <div>
+                            <p class="font-bold text-slate-700">${data.person}</p>
+                            <p class="text-xs text-slate-400">ISBN: ${data.isbn}</p>
+                        </div>
+                        <span class="text-[10px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded uppercase tracking-tighter">Local</span>
+                    </div>
+                `;
+            });
+        }
+
+        function listenForLoans() {
+            const loansRef = collection(db, "loans");
+            onSnapshot(loansRef, (snapshot) => {
+                const list = document.getElementById('recentLoansList');
+                list.innerHTML = '';
+                if (snapshot.empty) { renderLocalLoans(); return; }
+                
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const date = data.date ? new Date(data.date.seconds * 1000).toLocaleDateString() : 'Just now';
+                    list.innerHTML += `
+                        <div class="flex justify-between items-center p-3 border-b last:border-0">
+                            <div>
+                                <p class="font-bold text-slate-700">${data.person}</p>
+                                <p class="text-xs text-slate-400">ISBN: ${data.isbn}</p>
+                            </div>
+                            <span class="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded uppercase tracking-tighter">Live</span>
+                        </div>
+                    `;
+                });
+            }, (err) => {
+                renderLocalLoans();
+            });
+        }
+
         function showStatus(msg, color) {
             const statusDiv = document.getElementById('statusMsg');
             statusDiv.innerText = msg;
-            statusDiv.className = `mt-4 p-3 rounded-lg text-sm font-medium bg-${color}-100 text-${color}-700`;
+            statusDiv.className = `mt-4 p-3 rounded-xl text-sm font-bold bg-${color}-50 text-${color}-700 border border-${color}-100 block text-center`;
             setTimeout(() => { statusDiv.className = "hidden"; }, 4000);
         }
+
+        window.onload = () => {
+            if (!isLive) renderLocalLoans();
+        };
     </script>
 </head>
 <body class="p-4 md:p-8 bg-gray-50 font-sans min-h-screen">
-    <div class="max-w-2xl mx-auto">
-        <h1 class="text-3xl font-extrabold text-slate-800 mb-2">Lending Desk</h1>
-        <p class="text-gray-500 mb-8">Manage book check-outs and returns here.</p>
+    <div class="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
         
-        <div class="bg-white p-6 md:p-10 rounded-3xl shadow-xl border border-gray-100">
-            <div class="flex items-center gap-3 mb-6">
-                <div class="bg-indigo-100 p-2 rounded-lg text-indigo-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                </div>
-                <h2 class="text-xl font-bold text-gray-800">New Loan (Check Out)</h2>
-            </div>
-
-            <div class="space-y-5">
+        <div class="md:col-span-2">
+            <div class="flex justify-between items-start mb-8">
                 <div>
-                    <label class="block text-xs font-bold text-gray-400 uppercase mb-2 tracking-wider">Student Name</label>
-                    <input id="personName" type="text" placeholder="Who is borrowing the book?" 
-                           class="w-full border border-gray-200 rounded-xl p-4 outline-none focus:ring-2 focus:ring-indigo-500 transition-all bg-gray-50 focus:bg-white">
+                    <h1 class="text-3xl font-black text-slate-800 tracking-tight">Lending Desk</h1>
+                    <p class="text-slate-500 text-sm">Manage student check-outs and returns.</p>
                 </div>
-                
-                <div>
-                    <label class="block text-xs font-bold text-gray-400 uppercase mb-2 tracking-wider">Book ISBN / Identifier</label>
-                    <input id="bookIsbn" type="text" placeholder="Scan or type the book code" 
-                           class="w-full border border-gray-200 rounded-xl p-4 outline-none focus:ring-2 focus:ring-indigo-500 transition-all bg-gray-50 focus:bg-white">
+                <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-gray-100">
+                    <div id="cloud-status-dot" class="w-2 h-2 rounded-full bg-slate-300"></div>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Network Status</span>
                 </div>
-
-                <button onclick="processLoan()" 
-                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-indigo-200 transition-all active:scale-[0.98]">
-                    Confirm Loan
-                </button>
             </div>
+            
+            <div class="bg-white p-6 md:p-10 rounded-[2.5rem] shadow-xl border border-gray-100">
+                <div class="flex items-center gap-3 mb-8">
+                    <div class="bg-indigo-600 p-3 rounded-2xl text-white shadow-lg shadow-indigo-100">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black text-slate-800">New Loan Record</h2>
+                        <p class="text-xs text-slate-400 font-medium">Create a digital entry for a physical book loan.</p>
+                    </div>
+                </div>
 
-            <div id="statusMsg" class="hidden"></div>
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest ml-1">Patron Name</label>
+                        <input id="personName" type="text" placeholder="Who is borrowing this?" 
+                               class="w-full border border-gray-100 rounded-2xl p-4 outline-none focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 bg-slate-50 transition-all font-medium">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest ml-1">Book ISBN or Asset ID</label>
+                        <input id="bookIsbn" type="text" placeholder="Scan barcode or type ID" 
+                               class="w-full border border-gray-100 rounded-2xl p-4 outline-none focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 bg-slate-50 transition-all font-medium">
+                    </div>
+
+                    <button onclick="processLoan()" 
+                            class="w-full bg-slate-900 hover:bg-indigo-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-slate-200 transition-all active:scale-[0.98] mt-4">
+                        Confirm Check-out
+                    </button>
+                </div>
+                <div id="statusMsg" class="hidden"></div>
+            </div>
         </div>
 
-        <!-- Quick Info -->
-        <div class="mt-8 grid grid-cols-2 gap-4">
-            <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100">
-                <p class="text-blue-700 font-bold text-sm">Pro-Tip</p>
-                <p class="text-blue-600 text-xs mt-1">Make sure you have set your Firestore rules to 'Test Mode' in the Firebase console.</p>
+        <div class="md:col-span-1">
+            <div class="bg-white rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden">
+                <div class="bg-slate-50 p-5 border-b border-gray-100">
+                    <h3 class="font-black text-slate-700 text-xs uppercase tracking-widest flex items-center gap-2">
+                        <i data-lucide="history" class="w-4 h-4 text-indigo-500"></i> Recent Activity
+                    </h3>
+                </div>
+                <div id="recentLoansList" class="p-2 min-h-[400px]">
+                    <p class="text-center text-gray-400 text-sm py-10 font-medium">Initializing feeds...</p>
+                </div>
             </div>
-            <div class="bg-amber-50 p-4 rounded-2xl border border-amber-100">
-                <p class="text-amber-700 font-bold text-sm">Security</p>
-                <p class="text-amber-600 text-xs mt-1">This page uses Anonymous Auth to keep your data safe while testing.</p>
+            
+            <div class="mt-6 bg-indigo-900 p-6 rounded-[2rem] text-white shadow-xl shadow-indigo-100 relative overflow-hidden">
+                <div class="relative z-10">
+                    <p class="text-indigo-300 font-black text-[10px] uppercase tracking-[0.2em] mb-2">Pro Tip</p>
+                    <p class="text-sm font-bold leading-relaxed">
+                        Once your AWS S3 bucket is ready, book images will automatically sync across all your school's devices!
+                    </p>
+                </div>
+                <div class="absolute -right-4 -bottom-4 opacity-10">
+                    <i data-lucide="cloud-lightning" class="w-24 h-24"></i>
+                </div>
             </div>
         </div>
+
     </div>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>lucide.createIcons();</script>
 </body>
 </html>
