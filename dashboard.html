@@ -2,84 +2,100 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - LibiShelf S3</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1500.0.min.js"></script>
+    <script>
+        // --- AWS CONFIGURATION ---
+        // Note: In a real app, we'd use a more secure way, but for your school project, 
+        // ensure these match your index.html keys.
+        AWS.config.update({
+            accessKeyId: 'YOUR_ACCESS_KEY',
+            secretAccessKey: 'YOUR_SECRET_KEY',
+            region: 'us-east-1'
+        });
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyBTVSCflCLlaacMplOxMa1HmRVYSg9WPBI",
-            authDomain: "libishelf-38fa6.firebaseapp.com",
-            projectId: "libishelf-38fa6",
-            storageBucket: "libishelf-38fa6.firebasestorage.app",
-            messagingSenderId: "778087006231",
-            appId: "1:778087006231:web:a3ecf2304d82419926dc52",
-            measurementId: "G-M08N81QJ35"
-        };
+        const s3 = new AWS.S3();
+        const DATA_BUCKET = 'libishelf-storage-yourname'; 
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        async function loadStats() {
+            try {
+                // 1. Count Books
+                const bookData = await s3.listObjectsV2({
+                    Bucket: DATA_BUCKET,
+                    Prefix: 'books/'
+                }).promise();
+                // Subtract 1 if the folder itself is counted
+                const bookCount = Math.max(0, bookData.Contents.length);
+                document.getElementById('total-books').innerText = bookCount;
 
-        function syncStats() {
-            // Live count of books
-            onSnapshot(collection(db, "library_books"), (snapshot) => {
-                document.getElementById('total-books').innerText = snapshot.size;
-                
+                // 2. Count Loans
+                const loanData = await s3.listObjectsV2({
+                    Bucket: DATA_BUCKET,
+                    Prefix: 'loans/'
+                }).promise();
+                document.getElementById('checked-out').innerText = loanData.Contents.length;
+
+                // 3. Render Recent Books
                 const recentDiv = document.getElementById('recent-books');
                 recentDiv.innerHTML = '';
-                
-                const books = [];
-                snapshot.forEach(doc => books.push(doc.data()));
-                // Sort by newest first
-                books.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
-                books.slice(0, 4).forEach(book => {
-                    // This handles the AWS S3 URL or the placeholder
-                    const coverUrl = book.cover || 'https://via.placeholder.com/150?text=No+Cover';
+                // Get the last 4 items
+                const latestBooks = bookData.Contents.slice(-4).reverse();
+                
+                for (let item of latestBooks) {
+                    const obj = await s3.getObject({ Bucket: DATA_BUCKET, Key: item.Key }).promise();
+                    const book = JSON.parse(obj.Body.toString());
+                    
                     recentDiv.innerHTML += `
-                        <div class="bg-gray-50 p-2 rounded-xl border border-gray-100 flex flex-col items-center">
-                            <img src="${coverUrl}" class="w-full h-32 object-cover rounded-lg shadow-sm mb-2" onerror="this.src='https://via.placeholder.com/150?text=Image+Error'">
-                            <p class="text-[10px] font-bold text-gray-700 truncate w-full text-center">${book.title}</p>
+                        <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100 flex flex-col items-center shadow-sm">
+                            <div class="w-full h-32 bg-indigo-100 rounded-lg flex items-center justify-center mb-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18 18.247 18.247 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                </svg>
+                            </div>
+                            <p class="text-[10px] font-black text-slate-700 truncate w-full text-center uppercase tracking-tighter">${book.title || 'Untitled'}</p>
                         </div>
                     `;
-                });
-            });
-            
-            // Live count of loans
-            onSnapshot(collection(db, "loans"), (snapshot) => {
-                document.getElementById('checked-out').innerText = snapshot.size;
-            });
+                }
+            } catch (err) {
+                console.error("Error loading S3 data:", err);
+            }
         }
 
-        window.onload = syncStats;
+        window.onload = loadStats;
     </script>
 </head>
-<body class="p-6 md:p-10 bg-gray-50 font-sans">
+<body class="p-6 md:p-10 bg-white font-sans">
     <div class="max-w-6xl mx-auto">
-        <header class="mb-8">
-            <h1 class="text-4xl font-black text-slate-900 tracking-tight">LibiShelf Admin</h1>
-            <p class="text-slate-500 font-medium tracking-wide">Multi-Cloud: Google Database + Amazon Storage</p>
+        <header class="mb-10">
+            <h1 class="text-4xl font-black text-slate-900 tracking-tight">Library Overview</h1>
+            <p class="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mt-2">Powered by Amazon S3 Storage</p>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-200">
-                <p class="text-gray-400 text-xs font-bold uppercase mb-1">Total Collection</p>
-                <h3 id="total-books" class="text-4xl font-black text-indigo-600">0</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <div class="bg-slate-50 p-8 rounded-[2rem] border border-slate-100">
+                <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-2">Books in Catalog</p>
+                <h3 id="total-books" class="text-5xl font-black text-slate-900">...</h3>
             </div>
-            <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-200">
-                <p class="text-gray-400 text-xs font-bold uppercase mb-1">Books Out</p>
-                <h3 id="checked-out" class="text-4xl font-black text-emerald-500">0</h3>
+            <div class="bg-slate-50 p-8 rounded-[2rem] border border-slate-100">
+                <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-2">Active Loans</p>
+                <h3 id="checked-out" class="text-5xl font-black text-slate-900">...</h3>
             </div>
-            <div class="bg-orange-500 p-6 rounded-3xl shadow-lg text-white">
-                <p class="text-orange-100 text-xs font-bold uppercase mb-1">S3 Bucket Status</p>
-                <h3 class="text-xl font-bold">AWS Connected</h3>
+            <div class="bg-indigo-600 p-8 rounded-[2rem] shadow-xl shadow-indigo-100 text-white">
+                <p class="text-indigo-200 text-[10px] font-black uppercase tracking-widest mb-2">Cloud Connectivity</p>
+                <h3 class="text-2xl font-black">S3 Live Sync</h3>
             </div>
         </div>
 
-        <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-200">
-            <h2 class="text-xl font-bold text-slate-800 mb-6">Recently Added (AWS Cloud)</h2>
-            <div id="recent-books" class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <!-- Books will appear here -->
+        <div class="bg-white border-2 border-slate-50 p-8 rounded-[2.5rem]">
+            <h2 class="text-lg font-black text-slate-800 mb-8 uppercase tracking-widest flex items-center gap-3">
+                <span class="w-8 h-1 bg-indigo-500 rounded-full"></span>
+                Recent Additions
+            </h2>
+            <div id="recent-books" class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <!-- Books will appear here from S3 JSON files -->
             </div>
         </div>
     </div>
