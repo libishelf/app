@@ -11,16 +11,16 @@
         // AWS CONFIGURATION
         // ==========================================
         AWS.config.update({
-            accessKeyId: 'YOUR_ACCESS_KEY_ID', 
-            secretAccessKey: 'YOUR_SECRET_ACCESS_KEY',
+            accessKeyId: 'AKIAWFH3BVHOQPMLKDQF', 
+            secretAccessKey: 'zc0j1OtQ1jtN6hVPRvd611tk43/hyD8ssmRkxWdk',
             region: 'us-east-1'
         });
 
         const s3 = new AWS.S3();
         
         // PASTE YOUR BUCKET NAMES HERE
-        const DATA_BUCKET = 'YOUR_DATA_BUCKET_NAME'; 
-        const IMAGE_BUCKET = 'YOUR_IMAGE_BUCKET_NAME'; 
+        const DATA_BUCKET = 'libishelf-storage'; 
+        const IMAGE_BUCKET = 'libishelf-images'; 
 
         // Function to add a new book + upload image
         async function saveBook() {
