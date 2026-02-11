@@ -1,141 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catalog - LibiShelf S3</title>
+    <meta charset="UTF-8"><title>Catalog</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1500.0.min.js"></script>
-    <script>
-        // --- AWS CONFIGURATION ---
-        // Ensure these match your index.html and dashboard.html
-        AWS.config.update({
-            accessKeyId: 'YOUR_ACCESS_KEY',
-            secretAccessKey: 'YOUR_SECRET_KEY',
-            region: 'us-east-1'
-        });
-
-        const s3 = new AWS.S3();
-        const DATA_BUCKET = 'libishelf-storage-yourname'; 
-
-        // Function to add a new book to S3
-        async function addBook() {
-            const title = document.getElementById('book-title').value;
-            const author = document.getElementById('book-author').value;
-            const isbn = document.getElementById('book-isbn').value;
-            const status = document.getElementById('action-status');
-
-            if (!title || !author || !isbn) {
-                alert("Please fill in all book details.");
-                return;
-            }
-
-            const bookData = {
-                title,
-                author,
-                isbn,
-                dateAdded: new Date().toISOString()
-            };
-
-            // We use the ISBN as the filename to keep it unique
-            const fileName = `books/${isbn}.json`;
-
-            try {
-                status.innerText = "Uploading to AWS...";
-                await s3.putObject({
-                    Bucket: DATA_BUCKET,
-                    Key: fileName,
-                    Body: JSON.stringify(bookData),
-                    ContentType: 'application/json'
-                }).promise();
-
-                status.innerText = "Success! Book added to cloud.";
-                document.getElementById('book-form').reset();
-                loadCatalog(); // Refresh the list
-            } catch (err) {
-                console.error(err);
-                status.innerText = "Error: Check AWS Keys/CORS.";
-            }
-        }
-
-        // Function to list all books from S3
-        async function loadCatalog() {
-            const listDiv = document.getElementById('catalog-list');
-            listDiv.innerHTML = '<p class="text-slate-400">Loading library...</p>';
-
-            try {
-                const data = await s3.listObjectsV2({
-                    Bucket: DATA_BUCKET,
-                    Prefix: 'books/'
-                }).promise();
-
-                // Filter out the folder itself if it appears
-                const files = data.Contents.filter(item => item.Key !== 'books/');
-
-                if (files.length === 0) {
-                    listDiv.innerHTML = '<p class="text-slate-400">Your library is empty. Add your first book!</p>';
-                    return;
-                }
-
-                listDiv.innerHTML = '';
-                for (let item of files) {
-                    const obj = await s3.getObject({ Bucket: DATA_BUCKET, Key: item.Key }).promise();
-                    const book = JSON.parse(obj.Body.toString());
-
-                    listDiv.innerHTML += `
-                        <div class="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex justify-between items-center">
-                            <div>
-                                <h4 class="font-black text-slate-800">${book.title}</h4>
-                                <p class="text-xs text-slate-500">${book.author} • ISBN: ${book.isbn}</p>
-                            </div>
-                            <div class="bg-green-50 text-green-600 text-[10px] font-black px-2 py-1 rounded-full uppercase">
-                                In Stock
-                            </div>
-                        </div>
-                    `;
-                }
-            } catch (err) {
-                console.error(err);
-                listDiv.innerHTML = '<p class="text-red-500 text-xs">Could not load catalog. Verify S3 permissions.</p>';
-            }
-        }
-
-        window.onload = loadCatalog;
-    </script>
 </head>
-<body class="p-6 md:p-10 bg-slate-50 font-sans min-h-screen">
-    <div class="max-w-4xl mx-auto">
-        <header class="mb-10 flex justify-between items-center">
-            <div>
-                <h1 class="text-3xl font-black text-slate-900 tracking-tight">Book Catalog</h1>
-                <p class="text-slate-500 text-sm">Manage your school's physical collection.</p>
-            </div>
-        </header>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <!-- Add Book Form -->
-            <div class="md:col-span-1">
-                <div class="bg-white p-6 rounded-[2rem] shadow-xl border border-white">
-                    <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-6">Add New Book</h3>
-                    <form id="book-form" class="space-y-4" onsubmit="event.preventDefault(); addBook();">
-                        <input id="book-title" type="text" placeholder="Book Title" class="w-full border p-3 rounded-xl bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
-                        <input id="book-author" type="text" placeholder="Author" class="w-full border p-3 rounded-xl bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
-                        <input id="book-isbn" type="text" placeholder="ISBN Number" class="w-full border p-3 rounded-xl bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
-                        <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-900 transition-all">
-                            Save to Cloud
-                        </button>
-                    </form>
-                    <p id="action-status" class="text-[10px] mt-4 text-center font-bold text-slate-400 uppercase"></p>
-                </div>
-            </div>
-
-            <!-- Library List -->
-            <div class="md:col-span-2">
-                <div class="space-y-3" id="catalog-list">
-                    <!-- S3 Items will load here -->
-                </div>
+<body class="p-8 bg-slate-50 font-sans min-h-screen">
+    <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="md:col-span-1">
+            <div class="bg-white p-6 rounded-[2rem] shadow-xl border border-white">
+                <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-6">New Entry</h3>
+                <input id="title" type="text" placeholder="Title" class="w-full mb-3 p-3 border rounded-xl bg-slate-50 text-sm font-medium outline-none">
+                <input id="author" type="text" placeholder="Author" class="w-full mb-3 p-3 border rounded-xl bg-slate-50 text-sm font-medium outline-none">
+                <input id="isbn" type="text" placeholder="ISBN" class="w-full mb-6 p-3 border rounded-xl bg-slate-50 text-sm font-medium outline-none">
+                <button onclick="saveBook()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-900 transition-all">Save to S3</button>
             </div>
         </div>
+        <div class="md:col-span-2 space-y-3" id="list"></div>
     </div>
+    <script>
+        AWS.config.update({ accessKeyId: 'YOUR_ACCESS_KEY_ID', secretAccessKey: 'YOUR_SECRET_ACCESS_KEY', region: 'us-east-1' });
+        const s3 = new AWS.S3();
+        const DATA_BUCKET = 'YOUR_DATA_BUCKET_NAME';
+
+        async function saveBook() {
+            const book = { title: document.getElementById('title').value, author: document.getElementById('author').value, isbn: document.getElementById('isbn').value };
+            await s3.putObject({ Bucket: DATA_BUCKET, Key: `books/${book.isbn}.json`, Body: JSON.stringify(book), ContentType: 'application/json' }).promise();
+            load();
+        }
+
+        async function load() {
+            const data = await s3.listObjectsV2({ Bucket: DATA_BUCKET, Prefix: 'books/' }).promise();
+            const list = document.getElementById('list');
+            list.innerHTML = '';
+            for(let item of data.Contents.filter(i => i.Key !== 'books/')) {
+                const obj = await s3.getObject({ Bucket: DATA_BUCKET, Key: item.Key }).promise();
+                const b = JSON.parse(obj.Body.toString());
+                list.innerHTML += `<div class="bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center"><span class="font-black text-slate-800">${b.title}</span><span class="text-[10px] font-bold text-slate-400 tracking-tighter uppercase">ISBN: ${b.isbn}</span></div>`;
+            }
+        }
+        window.onload = load;
+    </script>
 </body>
 </html>
