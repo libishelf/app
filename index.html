@@ -52,7 +52,7 @@
                     Connect to Library
                 </button>
             </div>
-            <!-- ENHANCED ERROR DISPLAY -->
+            
             <div id="auth-status-container" class="mt-4 hidden p-3 rounded-xl bg-red-50 border border-red-100">
                 <p id="auth-status-title" class="text-[10px] font-black text-red-600 uppercase tracking-widest"></p>
                 <p id="auth-status-desc" class="text-[9px] text-red-400 font-medium leading-tight mt-1"></p>
@@ -106,15 +106,20 @@
 
     <script>
         // ==========================================
-        // 1. AWS CONFIGURATION - PLEASE VERIFY THESE
+        // 1. AWS CONFIGURATION
         // ==========================================
         AWS.config.update({
             accessKeyId: 'AKIAWFH3BVHOQPMLKDQF', 
             secretAccessKey: 'zc0j1OtQ1jtN6hVPRvd611tk43/hyD8ssmRkxWdk',
-            region: 'us-east-1'
+            region: 'us-east-1' // Make sure this matches your bucket region!
         });
 
-        const s3 = new AWS.S3();
+        // Added s3ForcePathStyle to help the browser find the bucket correctly
+        const s3 = new AWS.S3({
+            params: { Bucket: 'libishelf-storage' },
+            s3ForcePathStyle: true 
+        });
+        
         const DATA_BUCKET = 'YOUR_DATA_BUCKET_NAME'; 
 
         // ==========================================
@@ -139,7 +144,7 @@
             btn.disabled = true;
             statusContainer.classList.remove('hidden');
             statusTitle.innerText = "Syncing...";
-            statusDesc.innerText = "Attempting to reach S3 bucket...";
+            statusDesc.innerText = "Checking Cloud Connection...";
 
             const userData = { email, school, address, lastLogin: new Date().toISOString() };
             const fileName = `users/${email.replace(/[^a-zA-Z0-9]/g, '_')}.json`;
@@ -155,26 +160,20 @@
                 localStorage.setItem('libishelf_user', JSON.stringify(userData));
                 checkAuth();
             } catch (err) {
-                console.error("DEBUG AWS ERROR:", err);
+                console.error("DEBUG:", err);
                 btn.disabled = false;
                 statusTitle.innerText = "AWS Connection Error";
                 
-                // Detailed Troubleshooting
                 if (err.code === "AccessDenied") {
-                    statusDesc.innerText = "Access Denied: Check your S3 Bucket Permissions or IAM User Policy.";
-                } else if (err.code === "NetworkingError") {
-                    statusDesc.innerText = "Networking Error: This usually means CORS is blocking the request.";
-                } else if (err.code === "InvalidAccessKeyId") {
-                    statusDesc.innerText = "Invalid Key ID: Please check that your Access Key is correct.";
+                    statusDesc.innerText = "Access Denied: Try checking your Access Keys for typos, or wait 5 mins for AWS to update permissions.";
+                } else if (err.name === "NetworkingError") {
+                    statusDesc.innerText = "Networking Error: Check your S3 Bucket CORS policy or your internet connection.";
                 } else {
-                    statusDesc.innerText = err.message || "Unknown error occurred.";
+                    statusDesc.innerText = err.message || "Something went wrong.";
                 }
             }
         }
 
-        // ==========================================
-        // 3. APP NAVIGATION & UI LOGIC
-        // ==========================================
         function checkAuth() {
             const session = localStorage.getItem('libishelf_user');
             if (session) {
