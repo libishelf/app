@@ -10,13 +10,13 @@
         // --- AWS CONFIGURATION ---
         // REPLACE THESE WITH YOUR KEYS
         AWS.config.update({
-            accessKeyId: 'YOUR_ACCESS_KEY_ID', 
-            secretAccessKey: 'YOUR_SECRET_ACCESS_KEY',
+            accessKeyId: 'AKIAWFH3BVHOQPMLKDQF', 
+            secretAccessKey: 'zc0j1OtQ1jtN6hVPRvd611tk43/hyD8ssmRkxWdk',
             region: 'us-east-1'
         });
 
         const s3 = new AWS.S3();
-        const DATA_BUCKET = 'libishelf-storage-yourname'; 
+        const DATA_BUCKET = 'libishelf-storage'; 
 
         // Function to record a new loan in S3
         window.processLoan = async () => {
