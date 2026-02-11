@@ -52,7 +52,11 @@
                     Connect to Library
                 </button>
             </div>
-            <p id="auth-status" class="text-xs mt-4 text-slate-400 font-bold uppercase"></p>
+            <!-- ENHANCED ERROR DISPLAY -->
+            <div id="auth-status-container" class="mt-4 hidden p-3 rounded-xl bg-red-50 border border-red-100">
+                <p id="auth-status-title" class="text-[10px] font-black text-red-600 uppercase tracking-widest"></p>
+                <p id="auth-status-desc" class="text-[9px] text-red-400 font-medium leading-tight mt-1"></p>
+            </div>
         </div>
     </div>
 
@@ -102,11 +106,11 @@
 
     <script>
         // ==========================================
-        // 1. AWS CONFIGURATION - PUT YOUR KEYS HERE!
+        // 1. AWS CONFIGURATION - PLEASE VERIFY THESE
         // ==========================================
         AWS.config.update({
-            accessKeyId: 'AKIAWFH3BVHOQPMLKDQF', 
-            secretAccessKey: 'zc0j1OtQ1jtN6hVPRvd611tk43/hyD8ssmRkxWdk',
+            accessKeyId: 'YOUR_ACCESS_KEY_ID', 
+            secretAccessKey: 'YOUR_SECRET_ACCESS_KEY',
             region: 'us-east-1'
         });
 
@@ -120,16 +124,22 @@
             const email = document.getElementById('user-email').value;
             const school = document.getElementById('school-name').value;
             const address = document.getElementById('school-address').value;
-            const status = document.getElementById('auth-status');
+            const statusContainer = document.getElementById('auth-status-container');
+            const statusTitle = document.getElementById('auth-status-title');
+            const statusDesc = document.getElementById('auth-status-desc');
             const btn = document.getElementById('auth-btn');
 
             if (!email || !school || !address) {
-                status.innerText = "Error: Fill all fields";
+                statusContainer.classList.remove('hidden');
+                statusTitle.innerText = "Missing Info";
+                statusDesc.innerText = "Please fill in all the blanks.";
                 return;
             }
 
             btn.disabled = true;
-            status.innerText = "Syncing with Cloud...";
+            statusContainer.classList.remove('hidden');
+            statusTitle.innerText = "Syncing...";
+            statusDesc.innerText = "Attempting to reach S3 bucket...";
 
             const userData = { email, school, address, lastLogin: new Date().toISOString() };
             const fileName = `users/${email.replace(/[^a-zA-Z0-9]/g, '_')}.json`;
@@ -145,9 +155,20 @@
                 localStorage.setItem('libishelf_user', JSON.stringify(userData));
                 checkAuth();
             } catch (err) {
-                console.error(err);
-                status.innerText = "AWS Error: Check CORS/Keys";
+                console.error("DEBUG AWS ERROR:", err);
                 btn.disabled = false;
+                statusTitle.innerText = "AWS Connection Error";
+                
+                // Detailed Troubleshooting
+                if (err.code === "AccessDenied") {
+                    statusDesc.innerText = "Access Denied: Check your S3 Bucket Permissions or IAM User Policy.";
+                } else if (err.code === "NetworkingError") {
+                    statusDesc.innerText = "Networking Error: This usually means CORS is blocking the request.";
+                } else if (err.code === "InvalidAccessKeyId") {
+                    statusDesc.innerText = "Invalid Key ID: Please check that your Access Key is correct.";
+                } else {
+                    statusDesc.innerText = err.message || "Unknown error occurred.";
+                }
             }
         }
 
@@ -177,7 +198,6 @@
             document.getElementById('current-view-title').innerText = titleText;
             document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active-link'));
             
-            // Highlight the active link
             const links = document.querySelectorAll('.nav-link');
             links.forEach(l => {
                 if(l.innerText.includes(titleText)) l.classList.add('active-link');
