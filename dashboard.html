@@ -1,103 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - LibiShelf S3</title>
+    <meta charset="UTF-8"><title>Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1500.0.min.js"></script>
-    <script>
-        // --- AWS CONFIGURATION ---
-        // Note: In a real app, we'd use a more secure way, but for your school project, 
-        // ensure these match your index.html keys.
-        AWS.config.update({
-            accessKeyId: 'YOUR_ACCESS_KEY',
-            secretAccessKey: 'YOUR_SECRET_KEY',
-            region: 'us-east-1'
-        });
-
-        const s3 = new AWS.S3();
-        const DATA_BUCKET = 'libishelf-storage-yourname'; 
-
-        async function loadStats() {
-            try {
-                // 1. Count Books
-                const bookData = await s3.listObjectsV2({
-                    Bucket: DATA_BUCKET,
-                    Prefix: 'books/'
-                }).promise();
-                // Subtract 1 if the folder itself is counted
-                const bookCount = Math.max(0, bookData.Contents.length);
-                document.getElementById('total-books').innerText = bookCount;
-
-                // 2. Count Loans
-                const loanData = await s3.listObjectsV2({
-                    Bucket: DATA_BUCKET,
-                    Prefix: 'loans/'
-                }).promise();
-                document.getElementById('checked-out').innerText = loanData.Contents.length;
-
-                // 3. Render Recent Books
-                const recentDiv = document.getElementById('recent-books');
-                recentDiv.innerHTML = '';
-
-                // Get the last 4 items
-                const latestBooks = bookData.Contents.slice(-4).reverse();
-                
-                for (let item of latestBooks) {
-                    const obj = await s3.getObject({ Bucket: DATA_BUCKET, Key: item.Key }).promise();
-                    const book = JSON.parse(obj.Body.toString());
-                    
-                    recentDiv.innerHTML += `
-                        <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100 flex flex-col items-center shadow-sm">
-                            <div class="w-full h-32 bg-indigo-100 rounded-lg flex items-center justify-center mb-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18 18.247 18.247 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                </svg>
-                            </div>
-                            <p class="text-[10px] font-black text-slate-700 truncate w-full text-center uppercase tracking-tighter">${book.title || 'Untitled'}</p>
-                        </div>
-                    `;
-                }
-            } catch (err) {
-                console.error("Error loading S3 data:", err);
-            }
-        }
-
-        window.onload = loadStats;
-    </script>
 </head>
-<body class="p-6 md:p-10 bg-white font-sans">
+<body class="p-8 bg-white font-sans">
     <div class="max-w-6xl mx-auto">
-        <header class="mb-10">
-            <h1 class="text-4xl font-black text-slate-900 tracking-tight">Library Overview</h1>
-            <p class="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mt-2">Powered by Amazon S3 Storage</p>
-        </header>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <h1 class="text-3xl font-black text-slate-900 mb-8 tracking-tight">Library Stats</h1>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
             <div class="bg-slate-50 p-8 rounded-[2rem] border border-slate-100">
-                <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-2">Books in Catalog</p>
-                <h3 id="total-books" class="text-5xl font-black text-slate-900">...</h3>
+                <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-2">Total Books</p>
+                <h3 id="total-books" class="text-5xl font-black text-slate-900">0</h3>
             </div>
-            <div class="bg-slate-50 p-8 rounded-[2rem] border border-slate-100">
-                <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-2">Active Loans</p>
-                <h3 id="checked-out" class="text-5xl font-black text-slate-900">...</h3>
-            </div>
-            <div class="bg-indigo-600 p-8 rounded-[2rem] shadow-xl shadow-indigo-100 text-white">
-                <p class="text-indigo-200 text-[10px] font-black uppercase tracking-widest mb-2">Cloud Connectivity</p>
-                <h3 class="text-2xl font-black">S3 Live Sync</h3>
+            <div class="bg-indigo-600 p-8 rounded-[2rem] text-white shadow-xl shadow-indigo-100">
+                <p class="text-indigo-200 text-[10px] font-black uppercase tracking-widest mb-2">Active Loans</p>
+                <h3 id="active-loans" class="text-5xl font-black">0</h3>
             </div>
         </div>
-
-        <div class="bg-white border-2 border-slate-50 p-8 rounded-[2.5rem]">
-            <h2 class="text-lg font-black text-slate-800 mb-8 uppercase tracking-widest flex items-center gap-3">
-                <span class="w-8 h-1 bg-indigo-500 rounded-full"></span>
-                Recent Additions
-            </h2>
-            <div id="recent-books" class="grid grid-cols-2 md:grid-cols-4 gap-6">
-                <!-- Books will appear here from S3 JSON files -->
-            </div>
+        <div class="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100">
+            <h2 class="text-xs font-black uppercase tracking-widest text-slate-400 mb-6">Recent S3 History</h2>
+            <div id="recent-log" class="space-y-2 text-xs font-medium text-slate-600">Loading activity...</div>
         </div>
     </div>
+    <script>
+        AWS.config.update({ accessKeyId: 'YOUR_ACCESS_KEY_ID', secretAccessKey: 'YOUR_SECRET_ACCESS_KEY', region: 'us-east-1' });
+        const s3 = new AWS.S3();
+        const DATA_BUCKET = 'YOUR_DATA_BUCKET_NAME';
+
+        async function init() {
+            try {
+                const books = await s3.listObjectsV2({ Bucket: DATA_BUCKET, Prefix: 'books/' }).promise();
+                const loans = await s3.listObjectsV2({ Bucket: DATA_BUCKET, Prefix: 'loans/' }).promise();
+                document.getElementById('total-books').innerText = Math.max(0, books.Contents.length - 1);
+                document.getElementById('active-loans').innerText = Math.max(0, loans.Contents.length - 1);
+                document.getElementById('recent-log').innerText = "Last sync: " + new Date().toLocaleTimeString();
+            } catch (e) { document.getElementById('recent-log').innerText = "Sync Error: Check Keys"; }
+        }
+        window.onload = init;
+    </script>
 </body>
 </html>
