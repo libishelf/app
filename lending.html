@@ -3,47 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lending Desk - LibiShelf</title>
+    <title>Lending Desk - LibiShelf S3</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBTVSCflCLlaacMplOxMa1HmRVYSg9WPBI",
-            authDomain: "libishelf-38fa6.firebaseapp.com",
-            projectId: "libishelf-38fa6",
-            storageBucket: "libishelf-38fa6.firebasestorage.app",
-            messagingSenderId: "778087006231",
-            appId: "1:778087006231:web:a3ecf2304d82419926dc52",
-            measurementId: "G-M08N81QJ35"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-
-        let isLive = false;
-
-        onAuthStateChanged(auth, (user) => {
-            const statusIndicator = document.getElementById('cloud-status-dot');
-            if (user) {
-                isLive = true;
-                statusIndicator.className = "w-2 h-2 rounded-full bg-green-500 animate-pulse";
-                listenForLoans();
-            } else {
-                signInAnonymously(auth).catch(() => {
-                    isLive = false;
-                    statusIndicator.className = "w-2 h-2 rounded-full bg-amber-500";
-                    renderLocalLoans();
-                });
-            }
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1500.0.min.js"></script>
+    <script>
+        // --- AWS CONFIGURATION ---
+        // REPLACE THESE WITH YOUR KEYS
+        AWS.config.update({
+            accessKeyId: 'YOUR_ACCESS_KEY_ID', 
+            secretAccessKey: 'YOUR_SECRET_ACCESS_KEY',
+            region: 'us-east-1'
         });
 
+        const s3 = new AWS.S3();
+        const DATA_BUCKET = 'libishelf-storage-yourname'; 
+
+        // Function to record a new loan in S3
         window.processLoan = async () => {
             const name = document.getElementById('personName').value;
             const isbn = document.getElementById('bookIsbn').value;
+            const statusIndicator = document.getElementById('cloud-status-dot');
 
             if(!name || !isbn) {
                 showStatus("Please fill out both fields!", "red");
@@ -57,75 +36,73 @@
                 status: 'Active'
             };
 
+            // Use a timestamp + name for a unique filename
+            const fileName = `loans/${Date.now()}_${name.replace(/\s+/g, '_')}.json`;
+
             try {
-                if (isLive) {
-                    await addDoc(collection(db, "loans"), {
-                        ...loanData,
-                        date: serverTimestamp()
-                    });
-                }
-                saveLocal(loanData);
+                await s3.putObject({
+                    Bucket: DATA_BUCKET,
+                    Key: fileName,
+                    Body: JSON.stringify(loanData),
+                    ContentType: 'application/json'
+                }).promise();
+
                 showStatus(`Success! Book lent to ${name}`, "green");
                 document.getElementById('personName').value = '';
                 document.getElementById('bookIsbn').value = '';
-                if (!isLive) renderLocalLoans();
+                
+                // Refresh the list immediately
+                loadLoans();
             } catch (e) { 
-                saveLocal(loanData);
-                showStatus("Saved Locally (Offline)", "amber");
+                console.error(e);
+                showStatus("AWS Error: Connection Failed", "red");
             }
         };
 
-        function saveLocal(loan) {
-            let local = JSON.parse(localStorage.getItem('libishelf_loans') || '[]');
-            local.unshift(loan);
-            localStorage.setItem('libishelf_loans', JSON.stringify(local.slice(0, 10)));
-        }
-
-        function renderLocalLoans() {
+        // Function to load all loans from S3
+        async function loadLoans() {
             const list = document.getElementById('recentLoansList');
-            const local = JSON.parse(localStorage.getItem('libishelf_loans') || '[]');
-            if (local.length === 0) {
-                list.innerHTML = '<p class="text-center text-gray-400 text-sm py-10">No recent activity.</p>';
-                return;
-            }
+            const statusDot = document.getElementById('cloud-status-dot');
             
-            list.innerHTML = '';
-            local.forEach(data => {
-                list.innerHTML += `
-                    <div class="flex justify-between items-center p-3 border-b last:border-0 bg-amber-50/30">
-                        <div>
-                            <p class="font-bold text-slate-700">${data.person}</p>
-                            <p class="text-xs text-slate-400">ISBN: ${data.isbn}</p>
-                        </div>
-                        <span class="text-[10px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded uppercase tracking-tighter">Local</span>
-                    </div>
-                `;
-            });
-        }
+            try {
+                const data = await s3.listObjectsV2({
+                    Bucket: DATA_BUCKET,
+                    Prefix: 'loans/'
+                }).promise();
 
-        function listenForLoans() {
-            const loansRef = collection(db, "loans");
-            onSnapshot(loansRef, (snapshot) => {
-                const list = document.getElementById('recentLoansList');
-                list.innerHTML = '';
-                if (snapshot.empty) { renderLocalLoans(); return; }
+                statusDot.className = "w-2 h-2 rounded-full bg-green-500 animate-pulse";
                 
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
-                    const date = data.date ? new Date(data.date.seconds * 1000).toLocaleDateString() : 'Just now';
+                const files = data.Contents.filter(item => item.Key !== 'loans/');
+                
+                if (files.length === 0) {
+                    list.innerHTML = '<p class="text-center text-gray-400 text-sm py-10">No recent activity.</p>';
+                    return;
+                }
+
+                list.innerHTML = '';
+                // Load and parse each loan file (Limit to 10 most recent)
+                const recentFiles = files.reverse().slice(0, 10);
+                
+                for (let item of recentFiles) {
+                    const obj = await s3.getObject({ Bucket: DATA_BUCKET, Key: item.Key }).promise();
+                    const loan = JSON.parse(obj.Body.toString());
+                    const loanDate = new Date(loan.date).toLocaleDateString();
+
                     list.innerHTML += `
                         <div class="flex justify-between items-center p-3 border-b last:border-0">
                             <div>
-                                <p class="font-bold text-slate-700">${data.person}</p>
-                                <p class="text-xs text-slate-400">ISBN: ${data.isbn}</p>
+                                <p class="font-bold text-slate-700">${loan.person}</p>
+                                <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">ISBN: ${loan.isbn} • ${loanDate}</p>
                             </div>
-                            <span class="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded uppercase tracking-tighter">Live</span>
+                            <span class="text-[10px] font-black text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded uppercase tracking-tighter border border-indigo-100">S3 Live</span>
                         </div>
                     `;
-                });
-            }, (err) => {
-                renderLocalLoans();
-            });
+                }
+            } catch (err) {
+                console.error(err);
+                statusDot.className = "w-2 h-2 rounded-full bg-red-500";
+                list.innerHTML = '<p class="text-center text-red-400 text-xs py-10">Error loading cloud data.</p>';
+            }
         }
 
         function showStatus(msg, color) {
@@ -136,7 +113,9 @@
         }
 
         window.onload = () => {
-            if (!isLive) renderLocalLoans();
+            loadLoans();
+            // Refresh every 30 seconds
+            setInterval(loadLoans, 30000);
         };
     </script>
 </head>
@@ -147,11 +126,11 @@
             <div class="flex justify-between items-start mb-8">
                 <div>
                     <h1 class="text-3xl font-black text-slate-800 tracking-tight">Lending Desk</h1>
-                    <p class="text-slate-500 text-sm">Manage student check-outs and returns.</p>
+                    <p class="text-slate-500 text-sm font-medium tracking-tight">Managing check-outs via AWS S3 Storage.</p>
                 </div>
                 <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-gray-100">
                     <div id="cloud-status-dot" class="w-2 h-2 rounded-full bg-slate-300"></div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Network Status</span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">S3 Active Sync</span>
                 </div>
             </div>
             
@@ -164,20 +143,20 @@
                     </div>
                     <div>
                         <h2 class="text-xl font-black text-slate-800">New Loan Record</h2>
-                        <p class="text-xs text-slate-400 font-medium">Create a digital entry for a physical book loan.</p>
+                        <p class="text-xs text-slate-400 font-medium">This entry will be saved as a JSON file in your bucket.</p>
                     </div>
                 </div>
 
                 <div class="space-y-6">
                     <div>
                         <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest ml-1">Patron Name</label>
-                        <input id="personName" type="text" placeholder="Who is borrowing this?" 
+                        <input id="personName" type="text" placeholder="Student Name" 
                                class="w-full border border-gray-100 rounded-2xl p-4 outline-none focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 bg-slate-50 transition-all font-medium">
                     </div>
                     
                     <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest ml-1">Book ISBN or Asset ID</label>
-                        <input id="bookIsbn" type="text" placeholder="Scan barcode or type ID" 
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest ml-1">Book ISBN</label>
+                        <input id="bookIsbn" type="text" placeholder="ISBN-13" 
                                class="w-full border border-gray-100 rounded-2xl p-4 outline-none focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 bg-slate-50 transition-all font-medium">
                     </div>
 
@@ -194,29 +173,27 @@
             <div class="bg-white rounded-[2rem] shadow-lg border border-gray-100 overflow-hidden">
                 <div class="bg-slate-50 p-5 border-b border-gray-100">
                     <h3 class="font-black text-slate-700 text-xs uppercase tracking-widest flex items-center gap-2">
-                        <i data-lucide="history" class="w-4 h-4 text-indigo-500"></i> Recent Activity
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg> 
+                        Cloud History
                     </h3>
                 </div>
                 <div id="recentLoansList" class="p-2 min-h-[400px]">
-                    <p class="text-center text-gray-400 text-sm py-10 font-medium">Initializing feeds...</p>
+                    <p class="text-center text-gray-400 text-sm py-10 font-medium">Syncing with S3...</p>
                 </div>
             </div>
             
-            <div class="mt-6 bg-indigo-900 p-6 rounded-[2rem] text-white shadow-xl shadow-indigo-100 relative overflow-hidden">
+            <div class="mt-6 bg-slate-900 p-6 rounded-[2rem] text-white shadow-xl shadow-slate-200 relative overflow-hidden border border-slate-800">
                 <div class="relative z-10">
-                    <p class="text-indigo-300 font-black text-[10px] uppercase tracking-[0.2em] mb-2">Pro Tip</p>
-                    <p class="text-sm font-bold leading-relaxed">
-                        Once your AWS S3 bucket is ready, book images will automatically sync across all your school's devices!
+                    <p class="text-indigo-400 font-black text-[10px] uppercase tracking-[0.2em] mb-2">Cloud Strategy</p>
+                    <p class="text-sm font-bold leading-relaxed text-slate-300">
+                        Your app is now 100% serverless. No databases, just simple files in your own S3 bucket.
                     </p>
-                </div>
-                <div class="absolute -right-4 -bottom-4 opacity-10">
-                    <i data-lucide="cloud-lightning" class="w-24 h-24"></i>
                 </div>
             </div>
         </div>
 
     </div>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>lucide.createIcons();</script>
 </body>
 </html>
