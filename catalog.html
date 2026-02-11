@@ -2,152 +2,139 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>LibiShelf + AWS S3 Catalog</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catalog - LibiShelf S3</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1500.0.min.js"></script>
+    <script>
         // --- AWS CONFIGURATION ---
-        const S3_BUCKET_NAME = "YOUR-BUCKET-NAME"; // Update this!
-        const REGION = "us-east-1"; // Update this!
-        
-        const firebaseConfig = {
-            apiKey: "AIzaSyBTVSCflCLlaacMplOxMa1HmRVYSg9WPBI",
-            authDomain: "libishelf-38fa6.firebaseapp.com",
-            projectId: "libishelf-38fa6",
-            storageBucket: "libishelf-38fa6.firebasestorage.app",
-            messagingSenderId: "778087006231",
-            appId: "1:778087006231:web:a3ecf2304d82419926dc52",
-            measurementId: "G-M08N81QJ35"
-        };
+        // Ensure these match your index.html and dashboard.html
+        AWS.config.update({
+            accessKeyId: 'YOUR_ACCESS_KEY',
+            secretAccessKey: 'YOUR_SECRET_KEY',
+            region: 'us-east-1'
+        });
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
+        const s3 = new AWS.S3();
+        const DATA_BUCKET = 'libishelf-storage-yourname'; 
 
-        async function start() {
+        // Function to add a new book to S3
+        async function addBook() {
+            const title = document.getElementById('book-title').value;
+            const author = document.getElementById('book-author').value;
+            const isbn = document.getElementById('book-isbn').value;
+            const status = document.getElementById('action-status');
+
+            if (!title || !author || !isbn) {
+                alert("Please fill in all book details.");
+                return;
+            }
+
+            const bookData = {
+                title,
+                author,
+                isbn,
+                dateAdded: new Date().toISOString()
+            };
+
+            // We use the ISBN as the filename to keep it unique
+            const fileName = `books/${isbn}.json`;
+
             try {
-                await signInAnonymously(auth);
-                listenForBooks();
+                status.innerText = "Uploading to AWS...";
+                await s3.putObject({
+                    Bucket: DATA_BUCKET,
+                    Key: fileName,
+                    Body: JSON.stringify(bookData),
+                    ContentType: 'application/json'
+                }).promise();
+
+                status.innerText = "Success! Book added to cloud.";
+                document.getElementById('book-form').reset();
+                loadCatalog(); // Refresh the list
             } catch (err) {
-                showStatus("Auth Error: Check Firebase.", "red");
+                console.error(err);
+                status.innerText = "Error: Check AWS Keys/CORS.";
             }
         }
 
-        async function uploadToS3(file) {
-            const cleanName = file.name.replace(/[^a-z0-9.]/gi, '_').toLowerCase();
-            const fileName = `covers/${Date.now()}-${cleanName}`;
-            const uploadUrl = `https://${S3_BUCKET_NAME}.s3.${REGION}.amazonaws.com/${fileName}`;
+        // Function to list all books from S3
+        async function loadCatalog() {
+            const listDiv = document.getElementById('catalog-list');
+            listDiv.innerHTML = '<p class="text-slate-400">Loading library...</p>';
 
             try {
-                const response = await fetch(uploadUrl, {
-                    method: 'PUT',
-                    body: file,
-                    headers: { 'Content-Type': file.type }
-                });
+                const data = await s3.listObjectsV2({
+                    Bucket: DATA_BUCKET,
+                    Prefix: 'books/'
+                }).promise();
 
-                if (!response.ok) throw new Error(`AWS Error: ${response.status}`);
-                return uploadUrl;
-            } catch (err) {
-                console.error("Upload Error:", err);
-                throw new Error("Failed to fetch: Check your AWS CORS settings.");
-            }
-        }
+                // Filter out the folder itself if it appears
+                const files = data.Contents.filter(item => item.Key !== 'books/');
 
-        window.addNewBook = async () => {
-            const title = document.getElementById('bookTitle').value;
-            const author = document.getElementById('bookAuthor').value;
-            const file = document.getElementById('bookCover').files[0];
-            const btn = document.getElementById('saveBtn');
-
-            if (!title || !author) return showStatus("Title and Author required!", "red");
-
-            btn.disabled = true;
-            btn.innerText = "Connecting to AWS...";
-
-            try {
-                let imageUrl = "";
-                if (file) {
-                    imageUrl = await uploadToS3(file);
+                if (files.length === 0) {
+                    listDiv.innerHTML = '<p class="text-slate-400">Your library is empty. Add your first book!</p>';
+                    return;
                 }
 
-                await addDoc(collection(db, "library_books"), {
-                    title, author, cover: imageUrl, status: 'Available', createdAt: serverTimestamp()
-                });
+                listDiv.innerHTML = '';
+                for (let item of files) {
+                    const obj = await s3.getObject({ Bucket: DATA_BUCKET, Key: item.Key }).promise();
+                    const book = JSON.parse(obj.Body.toString());
 
-                showStatus("Saved! Check AWS Bucket now.", "green");
-                document.getElementById('addBookForm').reset();
-            } catch (e) {
-                showStatus(e.message, "red");
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "Add Book";
+                    listDiv.innerHTML += `
+                        <div class="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex justify-between items-center">
+                            <div>
+                                <h4 class="font-black text-slate-800">${book.title}</h4>
+                                <p class="text-xs text-slate-500">${book.author} • ISBN: ${book.isbn}</p>
+                            </div>
+                            <div class="bg-green-50 text-green-600 text-[10px] font-black px-2 py-1 rounded-full uppercase">
+                                In Stock
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                console.error(err);
+                listDiv.innerHTML = '<p class="text-red-500 text-xs">Could not load catalog. Verify S3 permissions.</p>';
             }
-        };
-
-        function listenForBooks() {
-            onSnapshot(collection(db, "library_books"), (snapshot) => {
-                const list = document.getElementById('bookTableBody');
-                list.innerHTML = ''; 
-                snapshot.forEach((doc) => {
-                    const b = doc.data();
-                    const img = b.cover ? `<img src="${b.cover}" class="w-12 h-16 object-cover rounded shadow border">` : `<div class="w-12 h-16 bg-gray-200 rounded flex items-center justify-center text-[8px] text-gray-400">No Image</div>`;
-                    list.innerHTML += `
-                        <tr class="border-b hover:bg-slate-50 transition-colors">
-                            <td class="p-4">${img}</td>
-                            <td class="p-4 font-semibold text-slate-800">${b.title}</td>
-                            <td class="p-4 text-slate-600">${b.author}</td>
-                            <td class="p-4"><span class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-[10px] font-bold uppercase">Ready</span></td>
-                        </tr>`;
-                });
-            });
         }
 
-        function showStatus(msg, color) {
-            const el = document.getElementById('statusBox');
-            el.innerText = msg;
-            el.className = `mb-4 p-4 rounded-xl text-sm font-bold bg-${color}-50 text-${color}-700 border border-${color}-200 block`;
-        }
-
-        start();
+        window.onload = loadCatalog;
     </script>
 </head>
-<body class="bg-slate-50 min-h-screen p-8 font-sans">
-    <div class="max-w-5xl mx-auto">
-        <header class="mb-8 border-b border-slate-200 pb-6">
-            <h1 class="text-3xl font-black text-slate-900 tracking-tight">AWS Integrated Catalog</h1>
-            <p class="text-slate-500 mt-1">Files go to S3, Data goes to Firestore.</p>
+<body class="p-6 md:p-10 bg-slate-50 font-sans min-h-screen">
+    <div class="max-w-4xl mx-auto">
+        <header class="mb-10 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-black text-slate-900 tracking-tight">Book Catalog</h1>
+                <p class="text-slate-500 text-sm">Manage your school's physical collection.</p>
+            </div>
         </header>
-        <div id="statusBox" class="hidden"></div>
-        <form id="addBookForm" onsubmit="event.preventDefault();" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-            <div>
-                <label class="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">Title</label>
-                <input id="bookTitle" type="text" class="w-full border p-2.5 rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-orange-500">
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Add Book Form -->
+            <div class="md:col-span-1">
+                <div class="bg-white p-6 rounded-[2rem] shadow-xl border border-white">
+                    <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-6">Add New Book</h3>
+                    <form id="book-form" class="space-y-4" onsubmit="event.preventDefault(); addBook();">
+                        <input id="book-title" type="text" placeholder="Book Title" class="w-full border p-3 rounded-xl bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input id="book-author" type="text" placeholder="Author" class="w-full border p-3 rounded-xl bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input id="book-isbn" type="text" placeholder="ISBN Number" class="w-full border p-3 rounded-xl bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-900 transition-all">
+                            Save to Cloud
+                        </button>
+                    </form>
+                    <p id="action-status" class="text-[10px] mt-4 text-center font-bold text-slate-400 uppercase"></p>
+                </div>
             </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">Author</label>
-                <input id="bookAuthor" type="text" class="w-full border p-2.5 rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-orange-500">
+
+            <!-- Library List -->
+            <div class="md:col-span-2">
+                <div class="space-y-3" id="catalog-list">
+                    <!-- S3 Items will load here -->
+                </div>
             </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">Cover (S3)</label>
-                <input id="bookCover" type="file" accept="image/*" class="text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-orange-50 file:text-orange-700">
-            </div>
-            <button id="saveBtn" onclick="addNewBook()" class="bg-orange-600 text-white p-3 rounded-xl font-bold hover:bg-orange-700 transition shadow-lg active:scale-95">Add Book</button>
-        </form>
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <table class="w-full text-left">
-                <thead class="bg-slate-50 border-b">
-                    <tr>
-                        <th class="p-4 text-xs font-bold text-slate-400 uppercase">Cover</th>
-                        <th class="p-4 text-xs font-bold text-slate-400 uppercase">Title</th>
-                        <th class="p-4 text-xs font-bold text-slate-400 uppercase">Author</th>
-                        <th class="p-4 text-xs font-bold text-slate-400 uppercase">Status</th>
-                    </tr>
-                </thead>
-                <tbody id="bookTableBody"></tbody>
-            </table>
         </div>
     </div>
 </body>
