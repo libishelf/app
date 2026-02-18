@@ -6,174 +6,113 @@
     <title>CloudLib - My Personal Catalog</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .book-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .book-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .book-card { transition: all 0.3s ease; }
+        .book-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px rgba(0,0,0,0.1); }
         .loading-spinner { border-top-color: #4f46e5; animation: spinner 0.6s linear infinite; }
         @keyframes spinner { to { transform: rotate(360deg); } }
-        .fade-in { animation: fadeIn 0.5s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .img-preview { object-fit: cover; height: 100%; width: 100%; border-radius: 0.5rem; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen font-sans">
+<body class="bg-slate-50 min-h-screen">
 
-    <!-- Header -->
     <nav class="bg-indigo-600 text-white p-4 shadow-lg">
         <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-2xl font-bold flex items-center gap-2">
-                <span>📚</span> CloudLib
-            </h1>
-            <div id="stats" class="text-sm font-medium bg-indigo-500 px-3 py-1 rounded-full">
-                0 Items
-            </div>
+            <h1 class="text-2xl font-bold">📚 CloudLib</h1>
+            <div id="stats" class="text-sm bg-indigo-500 px-3 py-1 rounded-full">0 Items</div>
         </div>
     </nav>
 
-    <!-- Main Content -->
     <main class="container mx-auto p-6 max-w-4xl">
-        
-        <!-- API Connection Info -->
-        <div id="api-status-banner" class="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6 rounded shadow-sm transition-all duration-500">
+        <div id="api-status-banner" class="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6 rounded shadow-sm">
             <div class="flex items-center justify-between">
                 <div class="flex">
-                    <div id="status-icon" class="flex-shrink-0 text-amber-400 text-xl">⏳</div>
+                    <div id="status-icon">⏳</div>
                     <div class="ml-3">
-                        <p class="text-sm text-amber-700 font-medium" id="status-title">Connecting to Cloud...</p>
-                        <p class="text-xs text-amber-600" id="status-desc">Attempting to reach your AWS Library database.</p>
+                        <p class="text-sm font-medium" id="status-title">Connecting...</p>
+                        <p class="text-xs" id="status-desc">Syncing with AWS...</p>
                     </div>
                 </div>
-                <button onclick="fetchBooks()" class="bg-white px-3 py-1 rounded border text-xs font-bold text-slate-600 hover:bg-slate-50 transition">Sync Now</button>
+                <button onclick="fetchBooks()" class="text-xs font-bold border px-2 py-1 rounded bg-white">Sync Now</button>
             </div>
         </div>
-        
-        <!-- Add Book Section -->
+
+        <!-- Input Section -->
         <div class="bg-white rounded-xl shadow-sm p-6 mb-8 border border-slate-200">
-            <h2 class="text-lg font-semibold mb-4 text-slate-700">Add New Item</h2>
+            <h2 class="text-lg font-semibold mb-4">Add New Item</h2>
             <div class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input id="title" type="text" placeholder="Book Title" class="border p-2 rounded-md focus:ring-2 focus:ring-indigo-300 outline-none transition w-full">
-                    <input id="author" type="text" placeholder="Author" class="border p-2 rounded-md focus:ring-2 focus:ring-indigo-300 outline-none transition w-full">
+                    <input id="title" type="text" placeholder="Book Title" class="border p-2 rounded w-full">
+                    <input id="author" type="text" placeholder="Author" class="border p-2 rounded w-full">
                 </div>
-                <div class="flex flex-col sm:flex-row items-center gap-4">
+                <div class="flex flex-col sm:flex-row gap-4 items-center">
                     <div class="w-full">
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Book Cover Image</label>
-                        <input id="imageFile" type="file" accept="image/*" class="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer w-full">
+                        <label class="text-xs text-slate-500 font-bold uppercase block mb-1">Upload Cover</label>
+                        <input id="imageFile" type="file" accept="image/*" class="text-sm w-full">
                     </div>
-                    <button id="addBtn" onclick="addBook()" class="w-full sm:w-48 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md transition duration-200 flex items-center justify-center self-end">
-                        Add to Library
+                    <button id="addBtn" onclick="addBook()" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded hover:bg-indigo-700 transition w-full sm:w-auto mt-2 sm:mt-0">
+                        Add to Cloud
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- Library Grid -->
-        <div id="library-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 fade-in"></div>
-
-        <!-- Empty State -->
-        <div id="empty-state" class="text-center py-20 hidden">
-            <div class="text-6xl mb-4">📭</div>
-            <h3 class="text-xl text-slate-400">Your library is empty.</h3>
-        </div>
-
-        <!-- Loading State -->
-        <div id="loading-state" class="text-center py-20">
-            <div class="inline-block w-8 h-8 border-4 border-slate-200 loading-spinner rounded-full mb-4"></div>
-            <p class="text-slate-400 text-sm">Fetching your collection...</p>
+        <div id="library-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"></div>
+        <div id="loading-state" class="text-center py-10">
+            <div class="inline-block w-8 h-8 border-4 border-slate-200 loading-spinner rounded-full mb-2"></div>
         </div>
     </main>
 
-    <!-- Simple Notification Toast -->
-    <div id="toast" class="fixed bottom-5 right-5 bg-slate-800 text-white px-4 py-2 rounded-lg shadow-xl translate-y-20 transition-transform duration-300 pointer-events-none z-50">
-        Item updated!
-    </div>
-
     <script>
+        // REPLACE THIS with your actual API Gateway URL
         const API_URL = "https://rnxj52yc4d.execute-api.us-east-1.amazonaws.com/prod/items"; 
 
-        let myLibrary = [];
-
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.innerText = msg;
-            toast.classList.remove('translate-y-20');
-            setTimeout(() => toast.classList.add('translate-y-20'), 3000);
-        }
-
         async function fetchBooks() {
-            document.getElementById('loading-state').classList.remove('hidden');
             try {
                 const response = await fetch(API_URL);
-                if (!response.ok) throw new Error(`Server status ${response.status}`);
-                
                 const data = await response.json();
-                myLibrary = Array.isArray(data) ? data : (data.Items || []);
-                
-                showSuccess();
-                updateUI();
+                // Handle different response formats
+                const library = Array.isArray(data) ? data : (data.Items || []);
+                updateUI(library);
+                showStatus(true);
             } catch (err) {
-                console.error("AWS Sync Failed:", err);
-                showError();
-                loadLocalFallback();
+                console.error(err);
+                showStatus(false);
             }
         }
 
-        function showSuccess() {
+        function showStatus(success) {
             const banner = document.getElementById('api-status-banner');
-            banner.className = "bg-green-50 border-l-4 border-green-400 p-4 mb-6 rounded shadow-sm flex items-center justify-between transition-all";
-            document.getElementById('status-icon').innerText = "✅";
-            document.getElementById('status-title').innerText = "Connected to AWS";
-            document.getElementById('status-desc').innerText = "Sync active! Images will load from S3.";
+            banner.className = success ? "bg-green-50 border-l-4 border-green-400 p-4 mb-6 rounded shadow-sm" : "bg-red-50 border-l-4 border-red-400 p-4 mb-6 rounded shadow-sm";
+            document.getElementById('status-icon').innerText = success ? "✅" : "❌";
+            document.getElementById('status-title').innerText = success ? "Connected" : "Disconnected";
+            document.getElementById('status-desc').innerText = success ? "Your library is synced with AWS." : "Check your API connection.";
         }
 
-        function showError() {
-            const banner = document.getElementById('api-status-banner');
-            banner.className = "bg-red-50 border-l-4 border-red-400 p-4 mb-6 rounded shadow-sm flex items-center justify-between";
-            document.getElementById('status-icon').innerText = "❌";
-            document.getElementById('status-title').innerText = "Cloud Connection Failed";
-            document.getElementById('status-desc').innerText = "Check your API and CORS settings.";
-        }
-
-        function loadLocalFallback() {
-            const localData = localStorage.getItem('libib_clone_data');
-            myLibrary = localData ? JSON.parse(localData) : [];
-            updateUI();
-        }
-
-        function updateUI() {
+        function updateUI(library) {
             document.getElementById('loading-state').classList.add('hidden');
             const grid = document.getElementById('library-grid');
-            const empty = document.getElementById('empty-state');
             grid.innerHTML = '';
             
-            if (myLibrary.length === 0) {
-                empty.classList.remove('hidden');
-            } else {
-                empty.classList.add('hidden');
-                myLibrary.forEach((book) => {
-                    const id = book.bookId || book.id;
-                    const card = document.createElement('div');
-                    card.className = 'bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between book-card fade-in';
-                    
-                    // If there's an image URL, show it, otherwise show the icon
-                    const imageHtml = book.imageUrl 
-                        ? `<img src="${book.imageUrl}" class="img-preview mb-4" onerror="this.src='https://via.placeholder.com/150?text=No+Image'">`
-                        : `<div class="w-full h-40 bg-indigo-50 rounded mb-4 flex items-center justify-center text-4xl">📘</div>`;
+            library.forEach(book => {
+                const id = book.bookId || book.id;
+                const div = document.createElement('div');
+                div.className = 'bg-white p-4 rounded-xl border shadow-sm book-card';
+                
+                // Use the imageUrl from S3 if it exists
+                const imageHtml = book.imageUrl 
+                    ? `<img src="${book.imageUrl}" class="w-full h-48 object-cover rounded mb-3" onerror="this.src='https://via.placeholder.com/150?text=Image+Error'">`
+                    : `<div class="w-full h-48 bg-indigo-50 rounded mb-3 flex items-center justify-center text-4xl">📘</div>`;
 
-                    card.innerHTML = `
-                        <div>
-                            ${imageHtml}
-                            <h4 class="font-bold text-slate-800 leading-tight">${book.title || 'Untitled'}</h4>
-                            <p class="text-slate-500 text-sm mt-1">${book.author || 'Unknown Author'}</p>
-                        </div>
-                        <button onclick="removeBook('${id}')" class="mt-4 text-red-400 text-xs text-right uppercase font-bold hover:text-red-600 transition-colors">Remove</button>
-                    `;
-                    grid.appendChild(card);
-                });
-            }
-            document.getElementById('stats').innerText = `${myLibrary.length} Items`;
+                div.innerHTML = `
+                    ${imageHtml}
+                    <h4 class="font-bold text-slate-800">${book.title || 'Untitled'}</h4>
+                    <p class="text-slate-500 text-sm">${book.author || 'Unknown'}</p>
+                    <button onclick="deleteBook('${id}')" class="text-red-400 text-xs mt-4 hover:text-red-600 font-bold uppercase">Remove</button>
+                `;
+                grid.appendChild(div);
+            });
+            document.getElementById('stats').innerText = `${library.length} Items`;
         }
 
-        // Helper to convert file to Base64
         const toBase64 = file => new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -187,63 +126,58 @@
             const i = document.getElementById('imageFile');
             const btn = document.getElementById('addBtn');
             
-            if (!t.value || !a.value) return;
+            if(!t.value || !a.value) return;
 
             btn.disabled = true;
-            btn.innerHTML = `<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span> Uploading...`;
+            btn.innerText = "Processing...";
 
             try {
-                let imageData = null;
-                let fileName = null;
-
-                if (i.files.length > 0) {
-                    const file = i.files[0];
-                    imageData = await toBase64(file);
-                    fileName = `${Date.now()}-${file.name}`;
+                let imgData = null, imgName = null;
+                if(i.files[0]) {
+                    imgData = await toBase64(i.files[0]);
+                    // Create a unique name for the image
+                    imgName = `${Date.now()}-${i.files[0].name.replace(/\s+/g, '_')}`;
                 }
 
-                const newBook = { 
-                    id: Date.now().toString(), 
-                    title: t.value, 
-                    author: a.value,
-                    image: imageData, // Send the image data to Lambda
-                    imageName: fileName
-                };
-
-                const response = await fetch(API_URL, {
+                const res = await fetch(API_URL, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newBook)
+                    body: JSON.stringify({ 
+                        id: Date.now().toString(), 
+                        title: t.value, 
+                        author: a.value, 
+                        image: imgData, 
+                        imageName: imgName 
+                    })
                 });
+
+                const result = await res.json();
                 
-                if (response.ok) {
-                    showToast("Uploaded successfully!");
-                    await fetchBooks();
+                if (result.error) {
+                    alert("Error: " + result.message);
                 } else {
-                    throw new Error("Save error");
+                    t.value = ''; a.value = ''; i.value = '';
+                    fetchBooks();
                 }
             } catch (err) {
-                console.error("Save failed:", err);
-                showToast("Upload failed. Check Lambda permissions.");
+                alert("Critical Error: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Add to Cloud";
             }
-            
-            t.value = ''; a.value = ''; i.value = '';
-            btn.disabled = false;
-            btn.innerText = "Add to Library";
         }
 
-        async function removeBook(id) {
+        async function deleteBook(id) {
+            if(!confirm("Are you sure you want to remove this book?")) return;
             try {
-                const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-                if (response.ok) {
-                    showToast("Item removed");
-                    await fetchBooks();
-                }
+                await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+                fetchBooks();
             } catch (err) {
                 console.error("Delete failed:", err);
             }
         }
 
+        // Load books on startup
         fetchBooks();
     </script>
 </body>
