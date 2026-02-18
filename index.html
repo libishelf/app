@@ -6,9 +6,13 @@
     <title>CloudLib - My Personal Catalog</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .book-card:hover { transform: translateY(-5px); transition: all 0.3s ease; }
+        .book-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .book-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
         .loading-spinner { border-top-color: #4f46e5; animation: spinner 0.6s linear infinite; }
         @keyframes spinner { to { transform: rotate(360deg); } }
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .img-preview { object-fit: cover; height: 100%; width: 100%; border-radius: 0.5rem; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen font-sans">
@@ -20,7 +24,7 @@
                 <span>📚</span> CloudLib
             </h1>
             <div id="stats" class="text-sm font-medium bg-indigo-500 px-3 py-1 rounded-full">
-                Syncing...
+                0 Items
             </div>
         </div>
     </nav>
@@ -29,30 +33,41 @@
     <main class="container mx-auto p-6 max-w-4xl">
         
         <!-- API Connection Info -->
-        <div id="api-status-banner" class="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6 rounded shadow-sm">
-            <div class="flex">
-                <div class="flex-shrink-0 text-amber-400">⚠️</div>
-                <div class="ml-3">
-                    <p class="text-sm text-amber-700 font-medium" id="status-title">Connecting...</p>
-                    <p class="text-xs text-amber-600" id="status-desc">Attempting to reach your AWS Library database.</p>
+        <div id="api-status-banner" class="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6 rounded shadow-sm transition-all duration-500">
+            <div class="flex items-center justify-between">
+                <div class="flex">
+                    <div id="status-icon" class="flex-shrink-0 text-amber-400 text-xl">⏳</div>
+                    <div class="ml-3">
+                        <p class="text-sm text-amber-700 font-medium" id="status-title">Connecting to Cloud...</p>
+                        <p class="text-xs text-amber-600" id="status-desc">Attempting to reach your AWS Library database.</p>
+                    </div>
                 </div>
+                <button onclick="fetchBooks()" class="bg-white px-3 py-1 rounded border text-xs font-bold text-slate-600 hover:bg-slate-50 transition">Sync Now</button>
             </div>
         </div>
         
         <!-- Add Book Section -->
         <div class="bg-white rounded-xl shadow-sm p-6 mb-8 border border-slate-200">
             <h2 class="text-lg font-semibold mb-4 text-slate-700">Add New Item</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <input id="title" type="text" placeholder="Book Title" class="border p-2 rounded-md focus:ring-2 focus:ring-indigo-300 outline-none">
-                <input id="author" type="text" placeholder="Author" class="border p-2 rounded-md focus:ring-2 focus:ring-indigo-300 outline-none">
-                <button id="addBtn" onclick="addBook()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition duration-200 flex items-center justify-center">
-                    Add to Library
-                </button>
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input id="title" type="text" placeholder="Book Title" class="border p-2 rounded-md focus:ring-2 focus:ring-indigo-300 outline-none transition w-full">
+                    <input id="author" type="text" placeholder="Author" class="border p-2 rounded-md focus:ring-2 focus:ring-indigo-300 outline-none transition w-full">
+                </div>
+                <div class="flex flex-col sm:flex-row items-center gap-4">
+                    <div class="w-full">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Book Cover Image</label>
+                        <input id="imageFile" type="file" accept="image/*" class="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer w-full">
+                    </div>
+                    <button id="addBtn" onclick="addBook()" class="w-full sm:w-48 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md transition duration-200 flex items-center justify-center self-end">
+                        Add to Library
+                    </button>
+                </div>
             </div>
         </div>
 
         <!-- Library Grid -->
-        <div id="library-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"></div>
+        <div id="library-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 fade-in"></div>
 
         <!-- Empty State -->
         <div id="empty-state" class="text-center py-20 hidden">
@@ -63,37 +78,59 @@
         <!-- Loading State -->
         <div id="loading-state" class="text-center py-20">
             <div class="inline-block w-8 h-8 border-4 border-slate-200 loading-spinner rounded-full mb-4"></div>
+            <p class="text-slate-400 text-sm">Fetching your collection...</p>
         </div>
     </main>
 
+    <!-- Simple Notification Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-800 text-white px-4 py-2 rounded-lg shadow-xl translate-y-20 transition-transform duration-300 pointer-events-none z-50">
+        Item updated!
+    </div>
+
     <script>
-        // --- AWS CONFIGURATION ---
-        // I have updated this with your unique URL!
         const API_URL = "https://rnxj52yc4d.execute-api.us-east-1.amazonaws.com/prod/items"; 
 
         let myLibrary = [];
 
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.classList.remove('translate-y-20');
+            setTimeout(() => toast.classList.add('translate-y-20'), 3000);
+        }
+
         async function fetchBooks() {
+            document.getElementById('loading-state').classList.remove('hidden');
             try {
                 const response = await fetch(API_URL);
-                if (!response.ok) throw new Error('API Error');
+                if (!response.ok) throw new Error(`Server status ${response.status}`);
+                
                 const data = await response.json();
+                myLibrary = Array.isArray(data) ? data : (data.Items || []);
                 
-                // DynamoDB scan returns { Items: [...] }
-                myLibrary = data.Items || [];
-                
-                // Update Banner to Green (Success)
-                document.getElementById('api-status-banner').className = "bg-green-50 border-l-4 border-green-400 p-4 mb-6 rounded shadow-sm";
-                document.getElementById('status-title').innerText = "Connected to AWS";
-                document.getElementById('status-desc').innerText = "Your library is successfully synced to the cloud!";
+                showSuccess();
                 updateUI();
             } catch (err) {
-                console.error("AWS Connection Error:", err);
-                document.getElementById('api-status-banner').className = "bg-red-50 border-l-4 border-red-400 p-4 mb-6 rounded shadow-sm";
-                document.getElementById('status-title').innerText = "Connection Failed";
-                document.getElementById('status-desc').innerText = "Check your API Gateway CORS settings and Lambda code.";
+                console.error("AWS Sync Failed:", err);
+                showError();
                 loadLocalFallback();
             }
+        }
+
+        function showSuccess() {
+            const banner = document.getElementById('api-status-banner');
+            banner.className = "bg-green-50 border-l-4 border-green-400 p-4 mb-6 rounded shadow-sm flex items-center justify-between transition-all";
+            document.getElementById('status-icon').innerText = "✅";
+            document.getElementById('status-title').innerText = "Connected to AWS";
+            document.getElementById('status-desc').innerText = "Sync active! Images will load from S3.";
+        }
+
+        function showError() {
+            const banner = document.getElementById('api-status-banner');
+            banner.className = "bg-red-50 border-l-4 border-red-400 p-4 mb-6 rounded shadow-sm flex items-center justify-between";
+            document.getElementById('status-icon').innerText = "❌";
+            document.getElementById('status-title').innerText = "Cloud Connection Failed";
+            document.getElementById('status-desc').innerText = "Check your API and CORS settings.";
         }
 
         function loadLocalFallback() {
@@ -113,15 +150,22 @@
             } else {
                 empty.classList.add('hidden');
                 myLibrary.forEach((book) => {
+                    const id = book.bookId || book.id;
                     const card = document.createElement('div');
-                    card.className = 'bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between book-card';
+                    card.className = 'bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between book-card fade-in';
+                    
+                    // If there's an image URL, show it, otherwise show the icon
+                    const imageHtml = book.imageUrl 
+                        ? `<img src="${book.imageUrl}" class="img-preview mb-4" onerror="this.src='https://via.placeholder.com/150?text=No+Image'">`
+                        : `<div class="w-full h-40 bg-indigo-50 rounded mb-4 flex items-center justify-center text-4xl">📘</div>`;
+
                     card.innerHTML = `
                         <div>
-                            <div class="w-full h-32 bg-slate-100 rounded mb-4 flex items-center justify-center text-3xl">📘</div>
-                            <h4 class="font-bold text-slate-800">${book.title}</h4>
-                            <p class="text-slate-500 text-sm">${book.author}</p>
+                            ${imageHtml}
+                            <h4 class="font-bold text-slate-800 leading-tight">${book.title || 'Untitled'}</h4>
+                            <p class="text-slate-500 text-sm mt-1">${book.author || 'Unknown Author'}</p>
                         </div>
-                        <button onclick="removeBook('${book.bookId || book.id}')" class="mt-4 text-red-400 text-xs text-right uppercase font-bold hover:text-red-600 transition-colors">Remove</button>
+                        <button onclick="removeBook('${id}')" class="mt-4 text-red-400 text-xs text-right uppercase font-bold hover:text-red-600 transition-colors">Remove</button>
                     `;
                     grid.appendChild(card);
                 });
@@ -129,19 +173,43 @@
             document.getElementById('stats').innerText = `${myLibrary.length} Items`;
         }
 
+        // Helper to convert file to Base64
+        const toBase64 = file => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = error => reject(error);
+        });
+
         async function addBook() {
             const t = document.getElementById('title');
             const a = document.getElementById('author');
+            const i = document.getElementById('imageFile');
             const btn = document.getElementById('addBtn');
+            
             if (!t.value || !a.value) return;
 
-            const newId = Date.now().toString();
-            const newBook = { id: newId, title: t.value, author: a.value };
-            
             btn.disabled = true;
-            btn.innerText = "Saving...";
+            btn.innerHTML = `<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span> Uploading...`;
 
             try {
+                let imageData = null;
+                let fileName = null;
+
+                if (i.files.length > 0) {
+                    const file = i.files[0];
+                    imageData = await toBase64(file);
+                    fileName = `${Date.now()}-${file.name}`;
+                }
+
+                const newBook = { 
+                    id: Date.now().toString(), 
+                    title: t.value, 
+                    author: a.value,
+                    image: imageData, // Send the image data to Lambda
+                    imageName: fileName
+                };
+
                 const response = await fetch(API_URL, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
@@ -149,19 +217,17 @@
                 });
                 
                 if (response.ok) {
+                    showToast("Uploaded successfully!");
                     await fetchBooks();
                 } else {
-                    throw new Error("Failed to save");
+                    throw new Error("Save error");
                 }
             } catch (err) {
                 console.error("Save failed:", err);
-                // Fallback to local if AWS fails
-                myLibrary.push({ bookId: newId, ...newBook });
-                localStorage.setItem('libib_clone_data', JSON.stringify(myLibrary));
-                updateUI();
+                showToast("Upload failed. Check Lambda permissions.");
             }
             
-            t.value = ''; a.value = ''; 
+            t.value = ''; a.value = ''; i.value = '';
             btn.disabled = false;
             btn.innerText = "Add to Library";
         }
@@ -170,19 +236,14 @@
             try {
                 const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
                 if (response.ok) {
+                    showToast("Item removed");
                     await fetchBooks();
-                } else {
-                    throw new Error("Delete failed");
                 }
             } catch (err) {
                 console.error("Delete failed:", err);
-                myLibrary = myLibrary.filter(b => (b.bookId || b.id) !== id);
-                localStorage.setItem('libib_clone_data', JSON.stringify(myLibrary));
-                updateUI();
             }
         }
 
-        // Start the app
         fetchBooks();
     </script>
 </body>
