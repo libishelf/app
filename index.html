@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>S3 Library System</title>
+    <title>LibiShelf Library System</title>
     <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1500.0.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -14,31 +14,19 @@
 <body class="bg-gray-50 min-h-screen p-4 md:p-8">
     <div class="max-w-2xl mx-auto">
         <header class="mb-8 text-center md:text-left">
-            <h1 class="text-3xl font-bold text-gray-800">My S3 Library</h1>
-            <p class="text-gray-600">A secure way to manage your book list</p>
+            <h1 class="text-3xl font-bold text-gray-800">LibiShelf</h1>
+            <p class="text-gray-600">Your Personal Cloud Library</p>
         </header>
 
-        <!-- Configuration Panel -->
-        <div id="config-panel" class="card mb-6">
-            <h2 class="text-lg font-semibold mb-4 text-blue-700">1. Setup AWS Connection</h2>
-            <div class="grid grid-cols-1 gap-4">
-                <input id="accessKey" type="text" placeholder="AWS Access Key ID" class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none">
-                <input id="secretKey" type="password" placeholder="AWS Secret Access Key" class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none">
-                <input id="bucketName" type="text" placeholder="S3 Bucket Name" class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none">
-                <button onclick="saveConfig()" class="bg-blue-600 text-white py-2 rounded font-bold hover:bg-blue-700 transition">Connect to My Bucket</button>
-            </div>
-            <p class="text-xs text-gray-500 mt-3 italic text-center">Your keys stay in your browser and are not sent to any other server.</p>
-        </div>
-
-        <!-- App Panel -->
-        <div id="app-panel" class="hidden space-y-6">
+        <!-- Main App Panel -->
+        <div id="app-panel" class="space-y-6">
             <!-- Add Book Form -->
             <div class="card">
-                <h2 class="text-lg font-semibold mb-4 text-green-700">2. Add a New Book</h2>
+                <h2 class="text-lg font-semibold mb-4 text-green-700">Add a New Book</h2>
                 <div class="flex flex-col gap-4">
-                    <input id="bookTitle" type="text" placeholder="Enter Book Title" class="border p-2 rounded">
-                    <input id="bookAuthor" type="text" placeholder="Enter Author Name" class="border p-2 rounded">
-                    <button onclick="uploadToS3()" class="bg-green-600 text-white py-2 rounded font-bold hover:bg-green-700 transition">Save to Cloud</button>
+                    <input id="bookTitle" type="text" placeholder="Book Title" class="border p-2 rounded focus:ring-2 focus:ring-green-500 outline-none">
+                    <input id="bookAuthor" type="text" placeholder="Author Name" class="border p-2 rounded focus:ring-2 focus:ring-green-500 outline-none">
+                    <button onclick="uploadToS3()" class="bg-green-600 text-white py-2 rounded font-bold hover:bg-green-700 transition">Save to LibiShelf</button>
                 </div>
                 <div id="status" class="mt-4 text-sm font-medium text-center"></div>
             </div>
@@ -46,42 +34,39 @@
             <!-- Library View -->
             <div class="card">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-lg font-semibold text-purple-700">3. Your Library</h2>
+                    <h2 class="text-lg font-semibold text-purple-700">Your Bookshelf</h2>
                     <button onclick="fetchLibrary()" class="text-sm text-blue-600 hover:underline font-medium">Refresh List</button>
                 </div>
                 <div id="book-list" class="min-h-[100px] border rounded bg-gray-50 overflow-hidden">
-                    <p class="text-gray-400 text-center py-8">No books found. Add one above!</p>
+                    <!-- Books will appear here -->
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        let s3 = null;
-        let currentBucket = "";
+        // Pre-filled credentials
+        const AWS_CONFIG = {
+            accessKeyId: "AKIAWFH3BVHOQPMLKDQF",
+            secretAccessKey: "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",
+            region: "us-east-1",
+            bucketName: "libishelf"
+        };
 
-        function saveConfig() {
-            const accessKeyId = document.getElementById('accessKey').value.trim();
-            const secretAccessKey = document.getElementById('secretKey').value.trim();
-            currentBucket = document.getElementById('bucketName').value.trim();
+        // Initialize S3
+        AWS.config.update({
+            accessKeyId: AWS_CONFIG.accessKeyId,
+            secretAccessKey: AWS_CONFIG.secretAccessKey,
+            region: AWS_CONFIG.region
+        });
 
-            if(!accessKeyId || !secretAccessKey || !currentBucket) {
-                alert("Please fill in all AWS connection details.");
-                return;
-            }
+        const s3 = new AWS.S3({ 
+            params: { Bucket: AWS_CONFIG.bucketName },
+            signatureVersion: 'v4' 
+        });
 
-            AWS.config.update({
-                accessKeyId: accessKeyId,
-                secretAccessKey: secretAccessKey,
-                region: 'us-east-1' // You can change this to match your bucket region
-            });
-
-            s3 = new AWS.S3({ params: { Bucket: currentBucket }});
-            
-            document.getElementById('config-panel').classList.add('hidden');
-            document.getElementById('app-panel').classList.remove('hidden');
-            fetchLibrary();
-        }
+        // Load library on start
+        window.onload = fetchLibrary;
 
         async function uploadToS3() {
             const title = document.getElementById('bookTitle').value.trim();
@@ -89,7 +74,7 @@
             const status = document.getElementById('status');
 
             if (!title || !author) {
-                status.innerText = "Error: Please enter both title and author.";
+                status.innerText = "Please enter both title and author.";
                 status.className = "mt-4 text-sm font-medium text-red-600";
                 return;
             }
@@ -108,44 +93,42 @@
                 ContentType: 'application/json'
             };
 
-            status.innerText = "Saving to AWS S3...";
+            status.innerText = "Saving...";
             status.className = "mt-4 text-sm font-medium text-blue-600";
 
             try {
                 await s3.putObject(params).promise();
-                status.innerText = "Success! Book added to the cloud.";
+                status.innerText = "Success! Book saved.";
                 status.className = "mt-4 text-sm font-medium text-green-600";
                 document.getElementById('bookTitle').value = '';
                 document.getElementById('bookAuthor').value = '';
-                setTimeout(fetchLibrary, 1000); // Refresh list after upload
+                setTimeout(fetchLibrary, 1000);
             } catch (err) {
-                status.innerText = "AWS Error: " + err.message;
+                status.innerText = "Error: " + err.message;
                 status.className = "mt-4 text-sm font-medium text-red-600";
             }
         }
 
         async function fetchLibrary() {
             const listContainer = document.getElementById('book-list');
-            listContainer.innerHTML = '<p class="text-gray-400 text-center py-8 italic">Scanning S3 bucket...</p>';
+            listContainer.innerHTML = '<p class="text-gray-400 text-center py-8 italic text-sm">Loading your books...</p>';
 
             try {
-                // 1. List files in the 'library/' folder
                 const data = await s3.listObjectsV2({ Prefix: 'library/' }).promise();
-                
-                if (!data.Contents || data.Contents.length === 0) {
-                    listContainer.innerHTML = '<p class="text-gray-400 text-center py-8">Your cloud library is empty.</p>';
+                const jsonFiles = (data.Contents || []).filter(obj => obj.Key.endsWith('.json'));
+
+                if (jsonFiles.length === 0) {
+                    listContainer.innerHTML = '<p class="text-gray-400 text-center py-8">Your bookshelf is empty.</p>';
                     return;
                 }
 
-                // 2. Fetch the content of each file
-                const bookPromises = data.Contents
-                    .filter(obj => obj.Key.endsWith('.json'))
-                    .map(obj => s3.getObject({ Key: obj.Key }).promise());
+                const bookPromises = jsonFiles.map(obj => 
+                    s3.getObject({ Key: obj.Key }).promise()
+                );
 
                 const results = await Promise.all(bookPromises);
                 const books = results.map(res => JSON.parse(res.Body.toString()));
 
-                // 3. Render the books
                 listContainer.innerHTML = '';
                 books.sort((a, b) => b.id - a.id).forEach(book => {
                     const div = document.createElement('div');
@@ -159,9 +142,8 @@
                     `;
                     listContainer.appendChild(div);
                 });
-
             } catch (err) {
-                listContainer.innerHTML = `<p class="text-red-500 text-center py-8">Failed to load library: ${err.message}</p>`;
+                listContainer.innerHTML = `<p class="text-red-500 text-center py-8">Access Error: ${err.message}</p>`;
             }
         }
     </script>
