@@ -1,0 +1,33 @@
+<!-- This is a fragment to be used across pages -->
+<aside class="w-64 bg-white border-r border-slate-200 flex flex-col h-screen fixed left-0 top-0">
+    <div class="p-6 flex items-center gap-3">
+        <img src="/logo.svg" class="h-8 w-auto" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3389/3389081.png'">
+        <span class="font-black text-lg tracking-tight">LibiShelf</span>
+    </div>
+
+    <nav class="flex-1 px-4 space-y-1 mt-4">
+        <a href="/app/dashboard/" id="nav-dashboard" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-slate-600 transition-all hover:bg-slate-50">
+            <span>🏠</span> Dashboard
+        </a>
+        <a href="/app/catalog/" id="nav-catalog" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-slate-600 transition-all hover:bg-slate-50">
+            <span>📚</span> Catalog
+        </a>
+        <a href="/app/lending/" id="nav-lending" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-slate-600 transition-all hover:bg-slate-50">
+            <span>🔄</span> Lending
+        </a>
+    </nav>
+
+    <div class="p-4 border-t border-slate-100">
+        <a href="/login" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 transition-all">
+            <span>🚪</span> Logout
+        </a>
+    </div>
+</aside>
+
+<script>
+    // This script runs on every page load to darken the correct button
+    const path = window.location.pathname;
+    if (path.includes('dashboard')) document.getElementById('nav-dashboard').classList.add('bg-slate-900', 'text-white');
+    if (path.includes('catalog')) document.getElementById('nav-catalog').classList.add('bg-slate-900', 'text-white');
+    if (path.includes('lending')) document.getElementById('nav-lending').classList.add('bg-slate-900', 'text-white');
+</script>
