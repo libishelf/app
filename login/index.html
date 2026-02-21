@@ -2,131 +2,85 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LibiShelf - Welcome Back</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LibiShelf - Log In</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; overflow: hidden; }
-        .bg-image {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-image: url('../background.png');
-            background-size: cover; background-position: center;
-            filter: blur(10px) brightness(0.85); transform: scale(1.1); z-index: -1;
-        }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        .loader {
-            border: 3px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top: 3px solid white;
-            width: 20px;
-            height: 20px;
-            animation: spin 0.8s linear infinite;
-            display: inline-block;
-        }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .bg-image { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: url('../background.png'); background-size: cover; background-position: center; filter: blur(8px) brightness(0.8); z-index: -1; }
+        .glass-card { background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.2); width: 100%; max-width: 400px; margin-top: 4rem; }
+        .loader { border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top: 2px solid white; width: 14px; height: 14px; animation: spin 0.8s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        input { font-size: 16px !important; }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-6">
+<body class="p-4">
     <div class="bg-image"></div>
 
-    <div class="fixed top-10 left-10 z-10">
-        <a href="/" class="flex items-center gap-4 group">
-            <img src="../logo.svg" alt="Logo" class="h-12 w-auto drop-shadow-lg" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3389/3389081.png'">
-            <h1 class="text-2xl font-black tracking-tight text-white drop-shadow-lg">LibiShelf</h1>
+    <div class="fixed top-8 left-0 right-0 z-50 flex justify-center sm:justify-start sm:left-8">
+        <a href="/" class="flex items-center gap-2">
+            <img src="../logo.svg" alt="Logo" class="h-8 w-auto drop-shadow-md" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3389/3389081.png'">
+            <h1 class="text-xl font-black text-white drop-shadow-md">LibiShelf</h1>
         </a>
     </div>
 
-    <div class="w-full max-w-lg glass-card rounded-[3rem] overflow-hidden fade-in">
-        <div class="px-12 py-14" id="main-content">
-            <div class="space-y-6">
-                <div class="text-center mb-10">
-                    <h2 class="text-3xl font-black text-slate-800">Welcome Back</h2>
-                    <p class="text-slate-500 text-sm mt-2 font-medium">Sign in to manage your library.</p>
+    <div class="glass-card rounded-[2rem] shadow-2xl fade-in">
+        <div class="px-8 py-10" id="main-content">
+            <div class="space-y-5">
+                <div class="text-center">
+                    <h2 class="text-xl font-black text-slate-800 tracking-tight">Welcome Back</h2>
                 </div>
                 
-                <div class="space-y-4" id="login-form">
-                    <input type="email" id="le" class="w-full px-5 py-4 bg-slate-100/50 border border-slate-200 rounded-2xl outline-none focus:border-blue-500 transition-all" placeholder="Email Address">
-                    <input type="password" id="lp" class="w-full px-5 py-4 bg-slate-100/50 border border-slate-200 rounded-2xl outline-none focus:border-blue-500 transition-all" placeholder="Password">
+                <div class="space-y-3">
+                    <input type="email" id="le" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="Email Address">
+                    <input type="password" id="lp" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="Password">
                 </div>
 
-                <button id="btn-login" onclick="handleLogin()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-blue-200 active:scale-[0.98] transition-all flex items-center justify-center gap-3">
+                <button id="btn-login" onclick="handleLogin()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl text-sm shadow-md active:scale-95 flex items-center justify-center gap-2">
                     <span id="btn-text">Sign In</span>
                     <div id="btn-loader" class="loader hidden"></div>
                 </button>
 
-                <p class="text-center text-sm text-slate-500 mt-8 font-medium">Need an account? <a href="/signup" class="text-blue-600 font-bold hover:underline">Sign Up</a></p>
+                <p class="text-center text-xs text-slate-500 pt-2 font-medium">Need an account? <a href="/signup" class="text-blue-600 font-bold">Sign Up</a></p>
             </div>
         </div>
     </div>
 
     <script>
         const API_URL = 'https://1vs0akvj6e.execute-api.us-east-1.amazonaws.com/';
-        const emailInput = document.getElementById('le');
-        const passInput = document.getElementById('lp');
+        const emailI = document.getElementById('le');
+        const passI = document.getElementById('lp');
 
-        emailInput.focus();
-        [emailInput, passInput].forEach(input => {
-            input.onkeyup = (e) => { if(e.key === 'Enter') handleLogin(); };
-        });
+        [emailI, passI].forEach(i => i.onkeyup = (e) => { if(e.key === 'Enter') handleLogin(); });
 
         async function handleLogin() {
-            const email = emailInput.value;
-            const password = passInput.value;
+            const email = emailI.value;
+            const password = passI.value;
             const btn = document.getElementById('btn-login');
             const btnText = document.getElementById('btn-text');
             const btnLoader = document.getElementById('btn-loader');
 
-            if (!email || !password) return showMessage("Please enter your details");
+            if (!email || !password) return;
 
-            btn.disabled = true;
-            btnText.innerText = "Verifying...";
-            btnLoader.classList.remove('hidden');
+            btn.disabled = true; btnText.innerText = "Verifying..."; btnLoader.classList.remove('hidden');
 
             try {
-                const response = await fetch(API_URL, {
+                const res = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'login', email, password })
                 });
-
-                const res = await response.json();
-
-                if (res.user) {
-                    document.getElementById('main-content').innerHTML = `
-                        <div class="text-center py-10 fade-in">
-                            <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
-                            </div>
-                            <h2 class="text-3xl font-black text-slate-800 mb-2">Logged In!</h2>
-                            <p class="text-slate-500 font-medium tracking-tight">Accessing your library system...</p>
-                        </div>
-                    `;
-                    // Save user to session
-                    sessionStorage.setItem('libi_user', JSON.stringify(res.user));
-                    setTimeout(() => { window.location.href = "/dashboard"; }, 1500);
-                } else {
-                    throw new Error(res.error || "Credentials do not match");
-                }
+                const data = await res.json();
+                if (data.user) {
+                    document.getElementById('main-content').innerHTML = `<div class="text-center py-6"><h2 class="text-xl font-black">Logged In!</h2></div>`;
+                    setTimeout(() => { window.location.href = "/dashboard"; }, 1000);
+                } else { throw new Error(); }
             } catch (err) {
-                showMessage(err.message);
-                btn.disabled = false;
-                btnText.innerText = "Sign In";
-                btnLoader.classList.add('hidden');
+                btn.disabled = false; btnText.innerText = "Sign In"; btnLoader.classList.add('hidden');
             }
-        }
-
-        function showMessage(txt) {
-            const t = document.createElement('div');
-            t.className = 'fixed top-10 bg-slate-900 text-white px-8 py-4 rounded-3xl text-xs font-bold left-1/2 -translate-x-1/2 shadow-2xl z-50 fade-in';
-            t.innerText = txt;
-            document.body.appendChild(t);
-            setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 500); }, 3000);
         }
     </script>
 </body>
