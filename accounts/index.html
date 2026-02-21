@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LibiShelf | Admin Accounts</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .bg-image {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url('../background.png');
+            background-size: cover;
+            background-position: center;
+            filter: blur(15px) brightness(0.7);
+            z-index: -1;
+            transform: scale(1.1);
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-10 flex flex-col items-center">
+    <div class="bg-image"></div>
+
+    <!-- Login Gate -->
+    <div id="login-gate" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-[2rem] shadow-2xl w-full max-w-md text-center">
+            <h2 class="text-2xl font-black text-slate-800 mb-2">Admin Access</h2>
+            <p class="text-slate-500 text-sm mb-6">Enter the administrative password</p>
+            <input type="password" id="admin-pw" class="w-full px-5 py-4 bg-slate-100 border border-slate-200 rounded-2xl mb-4 text-center outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••••••">
+            <button onclick="checkPassword()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl hover:bg-black transition-all">Unlock Dashboard</button>
+        </div>
+    </div>
+
+    <!-- Main Admin Dashboard -->
+    <div id="admin-content" class="hidden w-full max-w-6xl space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="branding">
+                <h1 class="text-3xl font-black text-white drop-shadow-md">Account Management</h1>
+                <p class="text-white/80 font-medium uppercase text-[10px] tracking-widest">LibiShelf System Administration</p>
+            </div>
+            <div class="flex gap-2">
+                <input type="text" id="search-input" oninput="filterAccounts()" placeholder="Search schools or emails..." class="px-6 py-3 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl text-white placeholder-white/60 outline-none w-full md:w-80">
+                <button onclick="fetchAccounts()" class="bg-white text-slate-900 px-6 py-3 rounded-2xl font-bold hover:bg-slate-100 transition-all">Refresh</button>
+            </div>
+        </div>
+
+        <div class="glass rounded-[2.5rem] overflow-hidden shadow-2xl">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 border-bottom border-slate-100">
+                            <th class="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">School Name</th>
+                            <th class="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Email</th>
+                            <th class="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Plan</th>
+                            <th class="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accounts-table-body">
+                        <!-- Accounts injected here -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="loading-state" class="p-20 text-center hidden">
+                <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto"></div>
+                <p class="mt-4 text-slate-500 font-bold">Fetching latest data...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://1vs0akvj6e.execute-api.us-east-1.amazonaws.com/';
+        let allAccounts = [];
+
+        // 1. Security Logic
+        function checkPassword() {
+            const pw = document.getElementById('admin-pw').value;
+            if (pw === 'scaner2023') {
+                document.getElementById('login-gate').classList.add('hidden');
+                document.getElementById('admin-content').classList.remove('hidden');
+                fetchAccounts();
+            } else {
+                alert("Incorrect Password");
+            }
+        }
+
+        // Trigger password check on Enter key
+        document.getElementById('admin-pw').addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') checkPassword();
+        });
+
+        // 2. Data Logic
+        async function fetchAccounts() {
+            showLoading(true);
+            try {
+                // We add an 'action' to your Lambda so it knows to list users
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'listAccounts' })
+                });
+                const data = await response.json();
+                allAccounts = data.users || [];
+                renderTable(allAccounts);
+            } catch (err) {
+                console.error(err);
+                alert("Failed to load accounts. Ensure your Lambda supports 'listAccounts'.");
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function renderTable(accounts) {
+            const body = document.getElementById('accounts-table-body');
+            body.innerHTML = '';
+            
+            if (accounts.length === 0) {
+                body.innerHTML = `<tr><td colspan="4" class="px-8 py-20 text-center text-slate-400 font-medium">No accounts found.</td></tr>`;
+                return;
+            }
+
+            accounts.forEach(acc => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-slate-50 hover:bg-slate-50/50 transition-colors';
+                tr.innerHTML = `
+                    <td class="px-8 py-5">
+                        <div class="font-bold text-slate-800">${acc.SchoolName || 'N/A'}</div>
+                        <div class="text-[10px] text-slate-400 uppercase font-bold">${acc.SchoolAddress || ''}</div>
+                    </td>
+                    <td class="px-8 py-5 text-slate-600 font-medium">${acc.Email}</td>
+                    <td class="px-8 py-5">
+                        <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase ${acc.Plan === 'ultimate' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}">
+                            ${acc.Plan || 'pro'}
+                        </span>
+                    </td>
+                    <td class="px-8 py-5 text-right">
+                        <button onclick="deleteAccount('${acc.Email}')" class="bg-red-50 text-red-500 hover:bg-red-500 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition-all">Delete</button>
+                    </td>
+                `;
+                body.appendChild(tr);
+            });
+        }
+
+        function filterAccounts() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const filtered = allAccounts.filter(acc => 
+                acc.Email.toLowerCase().includes(query) || 
+                (acc.SchoolName && acc.SchoolName.toLowerCase().includes(query))
+            );
+            renderTable(filtered);
+        }
+
+        async function deleteAccount(email) {
+            if (!confirm(`Are you sure you want to delete the account for ${email}? This cannot be undone.`)) return;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'deleteAccount', email: email })
+                });
+                const res = await response.json();
+                if (res.message) {
+                    alert("Account deleted successfully");
+                    fetchAccounts();
+                } else {
+                    alert("Error: " + res.error);
+                }
+            } catch (err) {
+                alert("Request failed");
+            }
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading-state').style.display = show ? 'block' : 'none';
+            document.getElementById('accounts-table-body').style.display = show ? 'none' : 'table-row-group';
+        }
+    </script>
+</body>
+</html>
