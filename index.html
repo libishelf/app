@@ -3,187 +3,235 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CloudLib - My Personal Catalog</title>
+    <title>LibiShelf - Library Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .book-card { transition: all 0.3s ease; }
-        .book-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px rgba(0,0,0,0.1); }
-        .loading-spinner { border-top-color: #4f46e5; animation: spinner 0.6s linear infinite; }
-        @keyframes spinner { to { transform: rotate(360deg); } }
+        body { font-family: 'Inter', sans-serif; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen">
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col items-center justify-center p-4">
 
-    <nav class="bg-indigo-600 text-white p-4 shadow-lg">
-        <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-2xl font-bold">📚 CloudLib</h1>
-            <div id="stats" class="text-sm bg-indigo-500 px-3 py-1 rounded-full">0 Items</div>
+    <!-- Container -->
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden fade-in">
+        
+        <!-- Header / Logo -->
+        <div class="pt-8 pb-6 flex flex-col items-center border-b border-slate-50">
+            <img src="logo.svg" alt="LibiShelf Logo" class="h-12 w-auto mb-2" onerror="this.src='https://placeholder.com/wp-content/uploads/2018/10/placeholder.com-logo1.png'; this.classList.add('opacity-20')">
+            <h1 class="text-xl font-bold tracking-tight text-slate-800">LibiShelf</h1>
         </div>
-    </nav>
 
-    <main class="container mx-auto p-6 max-w-4xl">
-        <div id="api-status-banner" class="bg-amber-50 border-l-4 border-amber-400 p-4 mb-6 rounded shadow-sm">
-            <div class="flex items-center justify-between">
-                <div class="flex">
-                    <div id="status-icon">⏳</div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium" id="status-title">Connecting...</p>
-                        <p class="text-xs" id="status-desc">Syncing with AWS...</p>
-                    </div>
-                </div>
-                <button onclick="fetchBooks()" class="text-xs font-bold border px-2 py-1 rounded bg-white">Sync Now</button>
+        <div class="p-8">
+            <!-- App State Manager -->
+            <div id="auth-container">
+                <!-- Content injected here via JavaScript -->
             </div>
         </div>
-
-        <!-- Input Section -->
-        <div class="bg-white rounded-xl shadow-sm p-6 mb-8 border border-slate-200">
-            <h2 class="text-lg font-semibold mb-4">Add New Item</h2>
-            <div class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input id="title" type="text" placeholder="Book Title" class="border p-2 rounded w-full">
-                    <input id="author" type="text" placeholder="Author" class="border p-2 rounded w-full">
-                </div>
-                <div class="flex flex-col sm:flex-row gap-4 items-center">
-                    <div class="w-full">
-                        <label class="text-xs text-slate-500 font-bold uppercase block mb-1">Upload Cover</label>
-                        <input id="imageFile" type="file" accept="image/*" class="text-sm w-full">
-                    </div>
-                    <button id="addBtn" onclick="addBook()" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded hover:bg-indigo-700 transition w-full sm:w-auto mt-2 sm:mt-0">
-                        Add to Cloud
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <div id="library-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"></div>
-        <div id="loading-state" class="text-center py-10">
-            <div class="inline-block w-8 h-8 border-4 border-slate-200 loading-spinner rounded-full mb-2"></div>
-        </div>
-    </main>
+    </div>
 
     <script>
-        // YOUR API URL
-        const API_URL = "https://rnxj52yc4d.execute-api.us-east-1.amazonaws.com/prod/items"; 
+        // State management for the multi-step form
+        let currentState = 'signup-email'; // signup-email, signup-details, signup-books, signup-plans, success, login
+        let userData = {
+            email: '',
+            schoolName: '',
+            schoolAddress: '',
+            password: '',
+            bookCount: 0,
+            selectedPlan: ''
+        };
 
-        async function fetchBooks() {
-            try {
-                const response = await fetch(API_URL);
-                const data = await response.json();
-                const library = Array.isArray(data) ? data : (data.Items || []);
-                updateUI(library);
-                showStatus(true);
-            } catch (err) {
-                console.error(err);
-                showStatus(false);
-            }
-        }
+        const container = document.getElementById('auth-container');
 
-        function showStatus(success) {
-            const banner = document.getElementById('api-status-banner');
-            banner.className = success ? "bg-green-50 border-l-4 border-green-400 p-4 mb-6 rounded shadow-sm" : "bg-red-50 border-l-4 border-red-400 p-4 mb-6 rounded shadow-sm";
-            document.getElementById('status-icon').innerText = success ? "✅" : "❌";
-            document.getElementById('status-title').innerText = success ? "Connected" : "Disconnected";
-            document.getElementById('status-desc').innerText = success ? "Your library is synced with AWS." : "Check your API connection.";
-        }
-
-        function updateUI(library) {
-            document.getElementById('loading-state').classList.add('hidden');
-            const grid = document.getElementById('library-grid');
-            grid.innerHTML = '';
+        function render() {
+            container.innerHTML = '';
             
-            library.forEach(book => {
-                // IMPORTANT: Matches 'BookId' (Capital B) from your DynamoDB
-                const id = book.BookId; 
-                const div = document.createElement('div');
-                div.className = 'bg-white p-4 rounded-xl border shadow-sm book-card';
-                
-                const imageHtml = book.imageUrl 
-                    ? `<img src="${book.imageUrl}" class="w-full h-48 object-cover rounded mb-3" onerror="this.style.display='none'">`
-                    : `<div class="w-full h-48 bg-indigo-50 rounded mb-3 flex items-center justify-center text-4xl">📘</div>`;
+            switch(currentState) {
+                case 'signup-email':
+                    container.innerHTML = `
+                        <h2 class="text-lg font-semibold mb-4 text-center">Create your account</h2>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 uppercase mb-1">Email Address</label>
+                                <input type="email" id="email" value="${userData.email}" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="you@school.edu">
+                            </div>
+                            <button onclick="handleEmailContinue()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition duration-200 text-sm">Continue</button>
+                            <p class="text-center text-xs text-slate-500 mt-4">
+                                Already have an account? <a href="#" onclick="setState('login')" class="text-blue-600 font-semibold hover:underline">Sign In</a>
+                            </p>
+                        </div>
+                    `;
+                    break;
 
-                div.innerHTML = `
-                    ${imageHtml}
-                    <h4 class="font-bold text-slate-800">${book.title || 'Untitled'}</h4>
-                    <p class="text-slate-500 text-sm">${book.author || 'Unknown'}</p>
-                    <button onclick="deleteBook('${id}')" class="text-red-400 text-xs mt-4 hover:text-red-600 font-bold uppercase">Remove</button>
-                `;
-                grid.appendChild(div);
-            });
-            document.getElementById('stats').innerText = `${library.length} Items`;
+                case 'signup-details':
+                    container.innerHTML = `
+                        <h2 class="text-lg font-semibold mb-4">School Details</h2>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 uppercase mb-1">School Name</label>
+                                <input type="text" id="schoolName" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 uppercase mb-1">School Address</label>
+                                <input type="text" id="schoolAddress" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 uppercase mb-1">Password</label>
+                                <input type="password" id="password" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 uppercase mb-1">Confirm Password</label>
+                                <input type="password" id="confirmPassword" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm">
+                            </div>
+                            <button onclick="handleDetailsContinue()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition mt-2 text-sm">Continue</button>
+                        </div>
+                    `;
+                    break;
+
+                case 'signup-books':
+                    container.innerHTML = `
+                        <h2 class="text-lg font-semibold mb-2 text-center">Library Size</h2>
+                        <p class="text-xs text-slate-500 mb-6 text-center">This helps us recommend the best plan for your collection.</p>
+                        <div class="space-y-4 text-center">
+                            <label class="block text-xs font-medium text-slate-500 uppercase mb-1">Approximate number of books</label>
+                            <input type="number" id="bookCount" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-center text-lg font-bold" placeholder="500">
+                            <button onclick="handleBooksContinue()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition text-sm">Continue</button>
+                        </div>
+                    `;
+                    break;
+
+                case 'signup-plans':
+                    const isOver5k = userData.bookCount > 5000;
+                    container.innerHTML = `
+                        <h2 class="text-lg font-semibold mb-4 text-center">Choose your plan</h2>
+                        <div class="space-y-4">
+                            <!-- Pro Plan -->
+                            <div onclick="userData.selectedPlan='pro'; render();" class="cursor-pointer border-2 p-4 rounded-xl transition ${userData.selectedPlan === 'pro' ? 'border-blue-500 bg-blue-50' : 'border-slate-100'} ${!isOver5k ? 'scale-105 shadow-md ring-1 ring-blue-200' : 'opacity-80'}">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h3 class="font-bold text-slate-800">Pro Plan</h3>
+                                    <span class="text-blue-600 font-bold">$5.00<span class="text-xs text-slate-400">/mo</span></span>
+                                </div>
+                                <ul class="text-[11px] text-slate-600 space-y-1">
+                                    <li>• Catalog up to 5,000 items</li>
+                                    <li>• Offline mode access</li>
+                                    <li>• All proofreading features</li>
+                                    <li>• Library challenges included</li>
+                                </ul>
+                                ${!isOver5k ? '<div class="mt-2 text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded inline-block">Recommended</div>' : ''}
+                            </div>
+
+                            <!-- Ultimate Plan -->
+                            <div onclick="userData.selectedPlan='ultimate'; render();" class="cursor-pointer border-2 p-4 rounded-xl transition ${userData.selectedPlan === 'ultimate' ? 'border-blue-500 bg-blue-50' : 'border-slate-100'} ${isOver5k ? 'scale-105 shadow-md ring-1 ring-blue-200' : 'opacity-80'}">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h3 class="font-bold text-slate-800">Ultimate Plan</h3>
+                                    <span class="text-blue-600 font-bold">$10.00<span class="text-xs text-slate-400">/mo</span></span>
+                                </div>
+                                <ul class="text-[11px] text-slate-600 space-y-1">
+                                    <li>• Everything in Pro</li>
+                                    <li>• Catalog up to 100,000 items</li>
+                                    <li>• Priority cloud syncing</li>
+                                </ul>
+                                ${isOver5k ? '<div class="mt-2 text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded inline-block">Recommended</div>' : ''}
+                            </div>
+
+                            <button onclick="handlePlansContinue()" class="w-full bg-slate-900 hover:bg-black text-white font-medium py-2 rounded-lg transition mt-4 text-sm">Finish Setup</button>
+                        </div>
+                    `;
+                    break;
+
+                case 'success':
+                    container.innerHTML = `
+                        <div class="text-center py-6 fade-in">
+                            <div class="bg-green-100 text-green-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                            <h2 class="text-xl font-bold mb-2">Success!</h2>
+                            <p class="text-sm text-slate-500 mb-6">Your account has been created. Welcome to LibiShelf!</p>
+                            <button onclick="setState('login')" class="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium">Log In Now</button>
+                        </div>
+                    `;
+                    break;
+
+                case 'login':
+                    container.innerHTML = `
+                        <h2 class="text-lg font-semibold mb-4 text-center">Sign In</h2>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 uppercase mb-1">Email</label>
+                                <input type="email" id="loginEmail" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-500 uppercase mb-1">Password</label>
+                                <input type="password" id="loginPass" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                            </div>
+                            <button onclick="handleLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition text-sm">Sign In</button>
+                            <p class="text-center text-xs text-slate-500 mt-4">
+                                Need an account? <a href="#" onclick="setState('signup-email')" class="text-blue-600 font-semibold hover:underline">Sign Up</a>
+                            </p>
+                        </div>
+                    `;
+                    break;
+            }
         }
 
-        const toBase64 = file => new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result.split(',')[1]);
-            reader.onerror = error => reject(error);
-        });
+        // Action Handlers
+        function setState(s) { currentState = s; render(); }
 
-        async function addBook() {
-            const t = document.getElementById('title');
-            const a = document.getElementById('author');
-            const i = document.getElementById('imageFile');
-            const btn = document.getElementById('addBtn');
+        function handleEmailContinue() {
+            userData.email = document.getElementById('email').value;
+            if(!userData.email) return showMessage('Enter email');
+            setState('signup-details');
+        }
+
+        function handleDetailsContinue() {
+            userData.schoolName = document.getElementById('schoolName').value;
+            userData.schoolAddress = document.getElementById('schoolAddress').value;
+            userData.password = document.getElementById('password').value;
+            const confirm = document.getElementById('confirmPassword').value;
+
+            if(userData.password !== confirm) return showMessage("Passwords don't match");
+            if(!userData.schoolName) return showMessage("School name required");
             
-            if(!t.value || !a.value) return;
-
-            btn.disabled = true;
-            btn.innerText = "Processing...";
-
-            try {
-                let imgData = null, imgName = null;
-                if(i.files[0]) {
-                    imgData = await toBase64(i.files[0]);
-                    imgName = `${Date.now()}-${i.files[0].name.replace(/\s+/g, '_')}`;
-                }
-
-                const res = await fetch(API_URL, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        id: Date.now().toString(), 
-                        title: t.value, 
-                        author: a.value, 
-                        image: imgData, 
-                        imageName: imgName 
-                    })
-                });
-
-                const result = await res.json();
-                
-                if (result.error) {
-                    alert("Error: " + result.message);
-                } else {
-                    t.value = ''; a.value = ''; i.value = '';
-                    fetchBooks();
-                }
-            } catch (err) {
-                alert("Critical Error: " + err.message);
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "Add to Cloud";
-            }
+            setState('signup-books');
         }
 
-        async function deleteBook(id) {
-            if(!id || id === "undefined") {
-                alert("Error: Missing ID. Try syncing again.");
-                return;
-            }
-            if(!confirm("Remove this book?")) return;
-            try {
-                const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-                if(res.ok) {
-                    fetchBooks();
-                } else {
-                    alert("Delete failed on server.");
-                }
-            } catch (err) {
-                console.error("Delete failed:", err);
-            }
+        function handleBooksContinue() {
+            const count = parseInt(document.getElementById('bookCount').value);
+            if(isNaN(count)) return showMessage("Please enter a valid number");
+            userData.bookCount = count;
+            userData.selectedPlan = count > 5000 ? 'ultimate' : 'pro';
+            setState('signup-plans');
         }
 
-        fetchBooks();
+        function handlePlansContinue() {
+            // Here is where you would call your AWS Lambda to SAVE to DynamoDB
+            console.log("Saving user to LibiShelf:", userData);
+            setState('success');
+        }
+
+        function handleLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const pass = document.getElementById('loginPass').value;
+            // Here you would call Lambda to VERIFY credentials
+            console.log("Logging in...", email);
+            showMessage("Checking credentials...");
+        }
+
+        function showMessage(txt) {
+            // Simple non-alert replacement
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded text-xs z-50';
+            toast.innerText = txt;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Initialize
+        render();
     </script>
 </body>
 </html>
