@@ -11,7 +11,7 @@
             font-family: 'Plus Jakarta Sans', sans-serif; 
             margin: 0;
             padding: 0;
-            overflow-x: hidden;
+            overflow: hidden; /* Prevents scrollbars during transition */
         }
         
         .bg-image {
@@ -23,21 +23,27 @@
             background-image: url('background.png');
             background-size: cover;
             background-position: center;
-            filter: blur(8px) brightness(0.9);
+            filter: blur(10px) brightness(0.85);
             transform: scale(1.1);
             z-index: -1;
         }
 
-        .fade-in { animation: fadeIn 0.4s ease-out; }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
         .plan-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .plan-card:hover { transform: translateY(-4px); }
 
         .glass-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        /* Fix for the 'S' clipping issue */
+        .branding-container {
+            white-space: nowrap; /* Prevents text from wrapping into a single letter */
         }
     </style>
 </head>
@@ -45,20 +51,20 @@
 
     <div class="bg-image"></div>
 
-    <!-- Top Left Branding -->
-    <div class="fixed top-8 left-8 flex items-center gap-3 z-10">
-        <img src="logo.svg" alt="LibiShelf Logo" class="h-10 w-auto" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3389/3389081.png'">
-        <div class="flex flex-col">
-            <h1 class="text-xl font-extrabold tracking-tight text-white drop-shadow-md">LibiShelf</h1>
-            <p class="text-white/80 text-[10px] font-medium tracking-widest uppercase drop-shadow-sm">Empowering your school library</p>
+    <!-- Top Left Branding (Fixed Clipping) -->
+    <div class="fixed top-10 left-10 flex items-center gap-4 z-10 branding-container">
+        <img src="logo.svg" alt="Logo" class="h-12 w-auto drop-shadow-md" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3389/3389081.png'">
+        <div class="flex flex-col justify-center">
+            <h1 class="text-2xl font-extrabold tracking-tight text-white drop-shadow-lg leading-none">LibiShelf</h1>
+            <p class="text-white/90 text-[10px] font-bold tracking-[0.15em] uppercase drop-shadow-md mt-1">Empowering your school library</p>
         </div>
     </div>
 
-    <!-- Main Container -->
-    <div class="w-full max-w-lg glass-card rounded-[2.5rem] shadow-2xl overflow-hidden fade-in">
-        <div class="px-10 py-12">
+    <!-- Main Content -->
+    <div class="w-full max-w-lg glass-card rounded-[3rem] overflow-hidden fade-in">
+        <div class="px-12 py-14">
             <div id="auth-container">
-                <!-- Content injected here -->
+                <!-- UI will inject here -->
             </div>
         </div>
     </div>
@@ -87,40 +93,36 @@
             }
         }
 
-        // Helper to focus the first input and handle Enter key
         function setupPageActions(primaryBtnId) {
-            // Auto-focus first input
             const firstInput = container.querySelector('input');
             if (firstInput) firstInput.focus();
 
-            // Enter key trigger
             const inputs = container.querySelectorAll('input');
             inputs.forEach(input => {
-                input.addEventListener('keyup', (event) => {
-                    if (event.key === 'Enter') {
-                        document.getElementById(primaryBtnId).click();
-                    }
-                });
+                input.onkeyup = (e) => {
+                    if (e.key === 'Enter') document.getElementById(primaryBtnId).click();
+                };
             });
         }
 
         function render() {
             container.innerHTML = '';
+            window.onkeyup = null; // Clear global enter listener
             
             switch(currentState) {
                 case 'signup-email':
                     container.innerHTML = `
-                        <div class="space-y-5">
-                            <div class="mb-8">
-                                <h2 class="text-2xl font-bold text-slate-800">Create Account</h2>
-                                <p class="text-slate-500 text-sm mt-1">Start organizing your collection today.</p>
+                        <div class="space-y-6">
+                            <div>
+                                <h2 class="text-3xl font-black text-slate-800 tracking-tight">Create Account</h2>
+                                <p class="text-slate-500 text-sm mt-2 font-medium">Start organizing your collection today.</p>
                             </div>
-                            <div class="space-y-1">
-                                <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Email Address</label>
-                                <input type="email" id="email" value="${userData.email}" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="e.g. librarian@school.edu">
+                            <div class="space-y-2">
+                                <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
+                                <input type="email" id="email" value="${userData.email}" class="w-full px-5 py-4 bg-slate-100/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all" placeholder="librarian@school.edu">
                             </div>
-                            <button id="btn-email" onclick="handleEmailContinue()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-200 transition">Continue</button>
-                            <p class="text-center text-sm text-slate-500 mt-6">Already have an account? <a href="#" onclick="setState('login')" class="text-blue-600 font-bold hover:underline">Sign In</a></p>
+                            <button id="btn-email" onclick="handleEmailContinue()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-xl shadow-blue-200 transition-all active:scale-[0.98]">Continue</button>
+                            <p class="text-center text-sm text-slate-500 mt-6 font-medium">Already have an account? <a href="#" onclick="setState('login')" class="text-blue-600 font-bold hover:underline">Sign In</a></p>
                         </div>
                     `;
                     setupPageActions('btn-email');
@@ -129,12 +131,12 @@
                 case 'signup-details':
                     container.innerHTML = `
                         <div class="space-y-4">
-                            <h2 class="text-xl font-bold text-slate-800 mb-4 text-center">School Information</h2>
-                            <input type="text" id="sn" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="School Name">
-                            <input type="text" id="sa" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="Full School Address">
-                            <input type="password" id="pw" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="Create Password">
-                            <input type="password" id="cp" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="Confirm Password">
-                            <button id="btn-details" onclick="handleDetailsContinue()" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl mt-2 shadow-lg shadow-blue-200">Continue</button>
+                            <h2 class="text-2xl font-black text-slate-800 mb-6">School Info</h2>
+                            <input type="text" id="sn" class="w-full px-5 py-4 bg-slate-100/50 border border-slate-200 rounded-2xl text-sm outline-none focus:border-blue-500" placeholder="School Name">
+                            <input type="text" id="sa" class="w-full px-5 py-4 bg-slate-100/50 border border-slate-200 rounded-2xl text-sm outline-none focus:border-blue-500" placeholder="Full School Address">
+                            <input type="password" id="pw" class="w-full px-5 py-4 bg-slate-100/50 border border-slate-200 rounded-2xl text-sm outline-none focus:border-blue-500" placeholder="Create Password">
+                            <input type="password" id="cp" class="w-full px-5 py-4 bg-slate-100/50 border border-slate-200 rounded-2xl text-sm outline-none focus:border-blue-500" placeholder="Confirm Password">
+                            <button id="btn-details" onclick="handleDetailsContinue()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl mt-4 shadow-xl shadow-blue-200 transition-all active:scale-[0.98]">Continue</button>
                         </div>
                     `;
                     setupPageActions('btn-details');
@@ -143,12 +145,10 @@
                 case 'signup-books':
                     container.innerHTML = `
                         <div class="text-center">
-                            <h2 class="text-xl font-bold text-slate-800 mb-2">Collection Size</h2>
-                            <p class="text-sm text-slate-500 mb-8">Approximate number of books in your library</p>
-                            <div class="relative mb-8">
-                                <input type="number" id="bc" class="w-full px-4 py-8 bg-slate-50 border-2 border-slate-100 rounded-3xl text-center text-5xl font-black text-blue-600 focus:border-blue-500 outline-none transition" placeholder="0">
-                            </div>
-                            <button id="btn-books" onclick="handleBooksContinue()" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-200">See Recommended Plans</button>
+                            <h2 class="text-2xl font-black text-slate-800 mb-2">Collection Size</h2>
+                            <p class="text-sm text-slate-500 mb-8 font-medium">Approximate number of books in your library</p>
+                            <input type="number" id="bc" class="w-full px-4 py-10 bg-slate-100/50 border-2 border-slate-200 rounded-[2rem] text-center text-6xl font-black text-blue-600 focus:border-blue-500 outline-none transition-all" placeholder="0">
+                            <button id="btn-books" onclick="handleBooksContinue()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl mt-10 shadow-xl shadow-blue-200 transition-all active:scale-[0.98]">See Plans</button>
                         </div>
                     `;
                     setupPageActions('btn-books');
@@ -157,65 +157,56 @@
                 case 'signup-plans':
                     const over5k = userData.bookCount > 5000;
                     container.innerHTML = `
-                        <h2 class="text-xl font-bold text-slate-800 text-center mb-8">Select a Plan</h2>
-                        <div class="space-y-4">
-                            <div onclick="userData.selectedPlan='pro';render()" class="plan-card relative cursor-pointer border-2 p-6 rounded-3xl ${userData.selectedPlan === 'pro' ? 'border-blue-500 bg-blue-50 ring-4 ring-blue-50' : 'border-slate-100 bg-white hover:border-slate-200'}">
-                                ${!over5k ? '<span class="absolute -top-3 right-6 bg-blue-600 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-tighter shadow-md">Recommended</span>' : ''}
+                        <h2 class="text-2xl font-black text-slate-800 text-center mb-10">Select a Plan</h2>
+                        <div class="space-y-5">
+                            <div onclick="userData.selectedPlan='pro';render()" class="plan-card relative cursor-pointer border-2 p-8 rounded-[2rem] ${userData.selectedPlan === 'pro' ? 'border-blue-500 bg-blue-50 ring-8 ring-blue-500/5' : 'border-slate-100 bg-white hover:border-slate-200'}">
+                                ${!over5k ? '<span class="absolute -top-3 right-8 bg-blue-600 text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-tighter shadow-lg">Recommended</span>' : ''}
                                 <div class="flex justify-between items-center mb-4">
-                                    <h3 class="font-bold text-slate-800 text-lg">Pro Plan</h3>
-                                    <div class="text-right"><span class="text-2xl font-black text-slate-900">$5</span><span class="text-xs text-slate-400">/mo</span></div>
+                                    <h3 class="font-bold text-slate-800 text-xl">Pro</h3>
+                                    <div class="text-right"><span class="text-3xl font-black text-slate-900">$5</span><span class="text-xs text-slate-400 font-bold">/mo</span></div>
                                 </div>
-                                <ul class="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] text-slate-600">
-                                    <li>• 5,000 Items</li>
-                                    <li>• Offline Mode</li>
-                                    <li>• Proofreading</li>
-                                    <li>• Challenges</li>
-                                </ul>
+                                <p class="text-xs text-slate-500 leading-relaxed font-medium">• 5,000 Items • Offline Mode • Challenges</p>
                             </div>
 
-                            <div onclick="userData.selectedPlan='ultimate';render()" class="plan-card relative cursor-pointer border-2 p-6 rounded-3xl ${userData.selectedPlan === 'ultimate' ? 'border-blue-500 bg-blue-50 ring-4 ring-blue-50' : 'border-slate-100 bg-white hover:border-slate-200'}">
-                                ${over5k ? '<span class="absolute -top-3 right-6 bg-blue-600 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-tighter shadow-md">Best Value</span>' : ''}
+                            <div onclick="userData.selectedPlan='ultimate';render()" class="plan-card relative cursor-pointer border-2 p-8 rounded-[2rem] ${userData.selectedPlan === 'ultimate' ? 'border-blue-500 bg-blue-50 ring-8 ring-blue-500/5' : 'border-slate-100 bg-white hover:border-slate-200'}">
+                                ${over5k ? '<span class="absolute -top-3 right-8 bg-blue-600 text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-tighter shadow-lg">Best Value</span>' : ''}
                                 <div class="flex justify-between items-center mb-4">
-                                    <h3 class="font-bold text-slate-800 text-lg">Ultimate Plan</h3>
-                                    <div class="text-right"><span class="text-2xl font-black text-slate-900">$10</span><span class="text-xs text-slate-400">/mo</span></div>
+                                    <h3 class="font-bold text-slate-800 text-xl">Ultimate</h3>
+                                    <div class="text-right"><span class="text-3xl font-black text-slate-900">$10</span><span class="text-xs text-slate-400 font-bold">/mo</span></div>
                                 </div>
-                                <ul class="text-[11px] text-slate-600 space-y-1">
-                                    <li>• All Pro features included</li>
-                                    <li>• Up to 100,000 items catalog</li>
-                                </ul>
+                                <p class="text-xs text-slate-500 leading-relaxed font-medium">✨ All Pro features + Up to 100,000 items & Priority Support</p>
                             </div>
                         </div>
-                        <button onclick="handleSignupFinal()" id="btn-final" class="w-full bg-slate-900 hover:bg-black text-white font-bold py-4 rounded-2xl mt-8 shadow-xl transition">Complete Setup</button>
+                        <button onclick="handleSignupFinal()" id="btn-final" class="w-full bg-slate-900 hover:bg-black text-white font-bold py-5 rounded-2xl mt-10 shadow-2xl transition-all active:scale-[0.98]">Complete Registration</button>
                     `;
-                    // No inputs on this page, but we can make Enter trigger the final button
-                    window.onkeyup = (e) => { if(e.key === 'Enter' && currentState === 'signup-plans') handleSignupFinal(); };
+                    window.onkeyup = (e) => { if(e.key === 'Enter') handleSignupFinal(); };
                     break;
 
                 case 'success':
                     container.innerHTML = `
-                        <div class="text-center py-10">
-                            <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-                                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                        <div class="text-center py-6">
+                            <div class="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner animate-bounce">
+                                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
                             </div>
-                            <h2 class="text-2xl font-bold mb-2 text-slate-800">Success!</h2>
-                            <p class="text-slate-500 text-sm mb-8">Your LibiShelf account is ready.</p>
-                            <button id="btn-success" onclick="setState('login')" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl">Go to Sign In</button>
+                            <h2 class="text-3xl font-black mb-3 text-slate-800">Welcome!</h2>
+                            <p class="text-slate-500 font-medium mb-10">Your account has been created successfully.</p>
+                            <button id="btn-success" onclick="setState('login')" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-blue-200">Sign In Now</button>
                         </div>
                     `;
-                    window.onkeyup = (e) => { if(e.key === 'Enter' && currentState === 'success') setState('login'); };
+                    window.onkeyup = (e) => { if(e.key === 'Enter') setState('login'); };
                     break;
 
                 case 'login':
                     container.innerHTML = `
-                        <div class="space-y-5">
-                            <div class="mb-8 text-center">
-                                <h2 class="text-2xl font-bold text-slate-800">Welcome Back</h2>
-                                <p class="text-slate-500 text-sm mt-1">Sign in to manage your library.</p>
+                        <div class="space-y-6">
+                            <div class="mb-10 text-center">
+                                <h2 class="text-3xl font-black text-slate-800">Welcome Back</h2>
+                                <p class="text-slate-500 text-sm mt-2 font-medium">Sign in to manage your library.</p>
                             </div>
-                            <input type="email" id="le" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="Email Address">
-                            <input type="password" id="lp" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="Password">
-                            <button id="btn-login" onclick="handleLogin()" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-200">Sign In</button>
-                            <p class="text-center text-sm text-slate-500 mt-6">New user? <a href="#" onclick="setState('signup-email')" class="text-blue-600 font-bold hover:underline">Create Account</a></p>
+                            <input type="email" id="le" class="w-full px-5 py-4 bg-slate-100/50 border border-slate-200 rounded-2xl focus:border-blue-500 outline-none" placeholder="Email Address">
+                            <input type="password" id="lp" class="w-full px-5 py-4 bg-slate-100/50 border border-slate-200 rounded-2xl focus:border-blue-500 outline-none" placeholder="Password">
+                            <button id="btn-login" onclick="handleLogin()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-blue-200 transition-all active:scale-[0.98]">Sign In</button>
+                            <p class="text-center text-sm text-slate-500 mt-8 font-medium">Need an account? <a href="#" onclick="setState('signup-email')" class="text-blue-600 font-bold hover:underline">Sign Up</a></p>
                         </div>
                     `;
                     setupPageActions('btn-login');
@@ -223,16 +214,11 @@
             }
         }
 
-        function setState(s) { 
-            // Reset global listeners
-            window.onkeyup = null;
-            currentState = s; 
-            render(); 
-        }
+        function setState(s) { currentState = s; render(); }
 
         function handleEmailContinue() {
             userData.email = document.getElementById('email').value;
-            if(!userData.email.includes('@')) return showMessage("Please enter a valid email");
+            if(!userData.email.includes('@')) return showMessage("Invalid email address");
             setState('signup-details');
         }
 
@@ -240,7 +226,7 @@
             userData.schoolName = document.getElementById('sn').value;
             userData.schoolAddress = document.getElementById('sa').value;
             userData.password = document.getElementById('pw').value;
-            if(userData.password.length < 6) return showMessage("Password must be at least 6 chars");
+            if(userData.password.length < 6) return showMessage("Password must be 6+ characters");
             if(userData.password !== document.getElementById('cp').value) return showMessage("Passwords do not match");
             setState('signup-books');
         }
@@ -254,11 +240,11 @@
         async function handleSignupFinal() {
             const btn = document.getElementById('btn-final');
             if(!btn || btn.disabled) return;
-            btn.innerText = "Processing...";
+            btn.innerText = "Creating Account...";
             btn.disabled = true;
             const res = await apiRequest({ action: 'signup', ...userData });
             if(res.message) setState('success');
-            else { showMessage(res.error || "Signup failed"); btn.innerText = "Complete Setup"; btn.disabled = false; }
+            else { showMessage(res.error || "Signup failed"); btn.innerText = "Complete Registration"; btn.disabled = false; }
         }
 
         async function handleLogin() {
@@ -266,22 +252,22 @@
             const password = document.getElementById('lp').value;
             const res = await apiRequest({ action: 'login', email, password });
             if(res.user) {
-                showMessage("Login successful!");
+                showMessage("Success!");
                 setTimeout(() => {
-                    document.body.innerHTML = `<div class="p-20 text-center text-white"><h1 class="text-4xl font-bold">Welcome, ${res.user.SchoolName}</h1></div>`;
-                }, 1000);
-            } else { showMessage(res.error || "Invalid login"); }
+                    document.body.innerHTML = `<div class="p-20 text-center text-white"><h1 class="text-4xl font-black drop-shadow-lg">Hello, ${res.user.SchoolName}</h1></div>`;
+                }, 800);
+            } else { showMessage(res.error || "Invalid login credentials"); }
         }
 
         function showMessage(txt) {
             const t = document.createElement('div');
-            t.className = 'fixed top-6 bg-white text-slate-900 border border-slate-200 px-6 py-3 rounded-2xl text-[11px] font-bold left-1/2 -translate-x-1/2 shadow-2xl z-50 fade-in';
+            t.className = 'fixed top-10 bg-slate-900/90 backdrop-blur-md text-white px-8 py-4 rounded-3xl text-xs font-bold left-1/2 -translate-x-1/2 shadow-2xl z-50 fade-in';
             t.innerText = txt;
             document.body.appendChild(t);
-            setTimeout(() => t.remove(), 4000);
+            setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 500); }, 3000);
         }
 
         render();
     </script>
 </body>
-</html>s
+</html>
