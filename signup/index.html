@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LibiShelf - Create Your Account</title>
+    <title>LibiShelf - Create Account</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -18,6 +18,12 @@
             background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.3);
         }
+        .loader {
+            border: 3px solid rgba(0,0,0,0.1); border-radius: 50%;
+            border-top: 3px solid #2563eb; width: 20px; height: 20px;
+            animation: spin 0.8s linear infinite; display: inline-block;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .fade-in { animation: fadeIn 0.4s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -25,27 +31,23 @@
 <body class="min-h-screen flex items-center justify-center p-6">
     <div class="bg-image"></div>
 
-    <div class="fixed top-10 left-10 flex items-center gap-4 z-10">
+    <div class="fixed top-10 left-10 z-10">
         <a href="/" class="flex items-center gap-4">
-            <img src="../logo.svg" alt="Logo" class="h-12 w-auto" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3389/3389081.png'">
-            <div class="flex flex-col">
-                <h1 class="text-2xl font-extrabold tracking-tight text-white drop-shadow-lg">LibiShelf</h1>
-            </div>
+            <img src="../logo.svg" alt="Logo" class="h-12 w-auto drop-shadow-lg" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3389/3389081.png'">
+            <h1 class="text-2xl font-black text-white drop-shadow-lg">LibiShelf</h1>
         </a>
     </div>
 
     <div class="w-full max-w-lg glass-card rounded-[3rem] overflow-hidden fade-in">
-        <div class="px-12 py-14">
-            <div id="auth-container">
-                <!-- Signup flow content here -->
-            </div>
+        <div class="px-12 py-14" id="auth-container">
+            <!-- Multi-step form renders here -->
         </div>
     </div>
 
     <script>
         const API_URL = 'https://1vs0akvj6e.execute-api.us-east-1.amazonaws.com/';
         let currentState = 'signup-email';
-        let userData = { email: '', schoolName: '', schoolAddress: '', password: '', bookCount: 0, selectedPlan: '' };
+        let userData = { email: '', schoolName: '', schoolAddress: '', password: '', bookCount: 0, selectedPlan: 'pro' };
 
         function render() {
             const container = document.getElementById('auth-container');
@@ -55,28 +57,87 @@
                 case 'signup-email':
                     container.innerHTML = `
                         <div class="space-y-6">
-                            <h2 class="text-3xl font-black text-slate-800 tracking-tight">Create Account</h2>
-                            <div class="space-y-2">
-                                <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Email Address</label>
-                                <input type="email" id="email" class="w-full px-5 py-4 bg-slate-100/50 border border-slate-200 rounded-2xl outline-none focus:border-blue-500" placeholder="librarian@school.edu">
-                            </div>
-                            <button id="btn-next" onclick="next()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-blue-200">Continue</button>
+                            <h2 class="text-3xl font-black text-slate-800 tracking-tight">Get Started</h2>
+                            <p class="text-slate-500 text-sm font-medium">Enter your email to begin.</p>
+                            <input type="email" id="email" class="w-full px-5 py-4 bg-slate-100 border border-slate-200 rounded-2xl outline-none" placeholder="librarian@school.edu">
+                            <button onclick="handleEmail()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg">Continue</button>
                             <p class="text-center text-sm text-slate-500 mt-6 font-medium">Already have an account? <a href="/login" class="text-blue-600 font-bold hover:underline">Log In</a></p>
                         </div>
                     `;
                     document.getElementById('email').focus();
-                    document.getElementById('email').onkeyup = (e) => { if(e.key === 'Enter') next(); };
                     break;
-                // ... (rest of the signup details, books, and plans screens logic same as original but with /login link)
+
+                case 'signup-details':
+                    container.innerHTML = `
+                        <div class="space-y-4">
+                            <h2 class="text-2xl font-black text-slate-800 mb-6 tracking-tight">About Your School</h2>
+                            <input type="text" id="sn" class="w-full px-5 py-4 bg-slate-100 border border-slate-200 rounded-2xl outline-none" placeholder="School Name">
+                            <input type="password" id="pw" class="w-full px-5 py-4 bg-slate-100 border border-slate-200 rounded-2xl outline-none" placeholder="Create Password">
+                            <button onclick="handleDetails()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg">Next Step</button>
+                        </div>
+                    `;
+                    document.getElementById('sn').focus();
+                    break;
+
+                case 'signup-final':
+                    container.innerHTML = `
+                        <div class="text-center space-y-6">
+                            <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-2 text-2xl">✨</div>
+                            <h2 class="text-2xl font-black text-slate-800">Finalize Account</h2>
+                            <p class="text-slate-500 text-sm">Review your details and complete registration.</p>
+                            <button id="btn-final" onclick="handleSignup()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-all">
+                                <span id="btn-text">Create My Account</span>
+                                <div id="btn-loader" class="loader hidden" style="border-top-color: white;"></div>
+                            </button>
+                        </div>
+                    `;
+                    break;
             }
         }
-        function next() {
-            const email = document.getElementById('email').value;
-            if(!email.includes('@')) return;
-            userData.email = email;
-            // logic to move to details...
-            alert("This file is focused on Sign Up! Link to /login at bottom works.");
+
+        function handleEmail() { 
+            const val = document.getElementById('email').value;
+            if(val.includes('@')) { userData.email = val; currentState = 'signup-details'; render(); } 
         }
+
+        function handleDetails() {
+            userData.schoolName = document.getElementById('sn').value;
+            userData.password = document.getElementById('pw').value;
+            if(userData.schoolName && userData.password) { currentState = 'signup-final'; render(); }
+        }
+
+        async function handleSignup() {
+            const btn = document.getElementById('btn-final');
+            const loader = document.getElementById('btn-loader');
+            btn.disabled = true;
+            loader.classList.remove('hidden');
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'signup', ...userData })
+                });
+                const data = await res.json();
+                if(data.message) {
+                    document.getElementById('auth-container').innerHTML = `
+                        <div class="text-center py-10 fade-in">
+                            <div class="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
+                            </div>
+                            <h2 class="text-3xl font-black text-slate-800 mb-2">Welcome!</h2>
+                            <p class="text-slate-500 font-medium mb-8">Your account has been created successfully.</p>
+                            <a href="/login" class="inline-block bg-blue-600 text-white px-10 py-4 rounded-2xl font-bold">Go to Login</a>
+                        </div>
+                    `;
+                }
+            } catch (e) { 
+                alert("Creation failed. Check connection."); 
+                btn.disabled = false; 
+                loader.classList.add('hidden'); 
+            }
+        }
+
         render();
     </script>
 </body>
