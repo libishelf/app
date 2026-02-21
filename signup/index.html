@@ -2,115 +2,120 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LibiShelf - Create Account</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Join LibiShelf</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; overflow: hidden; }
-        .bg-image {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-image: url('../background.png');
-            background-size: cover; background-position: center;
-            filter: blur(10px) brightness(0.85); transform: scale(1.1); z-index: -1;
-        }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        .loader {
-            border: 3px solid rgba(0,0,0,0.1); border-radius: 50%;
-            border-top: 3px solid #2563eb; width: 20px; height: 20px;
-            animation: spin 0.8s linear infinite; display: inline-block;
-        }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .bg-image { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: url('../background.png'); background-size: cover; background-position: center; filter: blur(8px) brightness(0.8); z-index: -1; }
+        .glass-card { background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.2); max-height: 90vh; overflow-y: auto; width: 100%; max-width: 400px; margin-top: 4rem; }
+        .loader { border: 2px solid rgba(0,0,0,0.1); border-radius: 50%; border-top: 2px solid #2563eb; width: 14px; height: 14px; animation: spin 0.8s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        input { font-size: 16px !important; }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-6">
+<body class="p-4">
     <div class="bg-image"></div>
 
-    <div class="fixed top-10 left-10 z-10">
-        <a href="/" class="flex items-center gap-4">
-            <img src="../logo.svg" alt="Logo" class="h-12 w-auto drop-shadow-lg" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3389/3389081.png'">
-            <h1 class="text-2xl font-black text-white drop-shadow-lg">LibiShelf</h1>
+    <div class="fixed top-8 left-0 right-0 z-50 flex justify-center sm:justify-start sm:left-8">
+        <a href="/" class="flex items-center gap-2">
+            <img src="../logo.svg" alt="Logo" class="h-8 w-auto drop-shadow-md" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3389/3389081.png'">
+            <h1 class="text-xl font-black text-white drop-shadow-md">LibiShelf</h1>
         </a>
     </div>
 
-    <div class="w-full max-w-lg glass-card rounded-[3rem] overflow-hidden fade-in">
-        <div class="px-12 py-14" id="auth-container">
-            <!-- Multi-step form renders here -->
+    <div class="glass-card rounded-[2rem] shadow-2xl fade-in">
+        <div class="px-8 py-10" id="auth-container">
+            <!-- Steps -->
         </div>
     </div>
 
     <script>
         const API_URL = 'https://1vs0akvj6e.execute-api.us-east-1.amazonaws.com/';
-        let currentState = 'signup-email';
-        let userData = { email: '', schoolName: '', schoolAddress: '', password: '', bookCount: 0, selectedPlan: 'pro' };
+        let currentState = 'step-email';
+        let userData = { email: '', schoolName: '', schoolAddress: '', password: '', confirmPassword: '', bookCount: 0 };
 
         function render() {
             const container = document.getElementById('auth-container');
             container.innerHTML = '';
             
             switch(currentState) {
-                case 'signup-email':
-                    container.innerHTML = `
-                        <div class="space-y-6">
-                            <h2 class="text-3xl font-black text-slate-800 tracking-tight">Get Started</h2>
-                            <p class="text-slate-500 text-sm font-medium">Enter your email to begin.</p>
-                            <input type="email" id="email" class="w-full px-5 py-4 bg-slate-100 border border-slate-200 rounded-2xl outline-none" placeholder="librarian@school.edu">
-                            <button onclick="handleEmail()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg">Continue</button>
-                            <p class="text-center text-sm text-slate-500 mt-6 font-medium">Already have an account? <a href="/login" class="text-blue-600 font-bold hover:underline">Log In</a></p>
-                        </div>
-                    `;
-                    document.getElementById('email').focus();
-                    break;
-
-                case 'signup-details':
+                case 'step-email':
                     container.innerHTML = `
                         <div class="space-y-4">
-                            <h2 class="text-2xl font-black text-slate-800 mb-6 tracking-tight">About Your School</h2>
-                            <input type="text" id="sn" class="w-full px-5 py-4 bg-slate-100 border border-slate-200 rounded-2xl outline-none" placeholder="School Name">
-                            <input type="password" id="pw" class="w-full px-5 py-4 bg-slate-100 border border-slate-200 rounded-2xl outline-none" placeholder="Create Password">
-                            <button onclick="handleDetails()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg">Next Step</button>
+                            <div class="text-center mb-6">
+                                <h2 class="text-xl font-black text-slate-800">Create Account</h2>
+                            </div>
+                            <input type="email" id="email" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="Email Address" value="${userData.email}">
+                            <button onclick="handleEmail()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl text-sm active:scale-95">Continue</button>
+                            <p class="text-center text-xs text-slate-500 pt-2 font-medium">Have an account? <a href="/login" class="text-blue-600 font-bold">Log In</a></p>
                         </div>
                     `;
-                    document.getElementById('sn').focus();
+                    setupEnter(handleEmail);
                     break;
 
-                case 'signup-final':
+                case 'step-school':
                     container.innerHTML = `
-                        <div class="text-center space-y-6">
-                            <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-2 text-2xl">✨</div>
-                            <h2 class="text-2xl font-black text-slate-800">Finalize Account</h2>
-                            <p class="text-slate-500 text-sm">Review your details and complete registration.</p>
-                            <button id="btn-final" onclick="handleSignup()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-all">
-                                <span id="btn-text">Create My Account</span>
-                                <div id="btn-loader" class="loader hidden" style="border-top-color: white;"></div>
-                            </button>
+                        <div class="space-y-4">
+                            <h2 class="text-xl font-black text-slate-800 text-center mb-4">School Details</h2>
+                            <input type="text" id="sn" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="School Name" value="${userData.schoolName}">
+                            <input type="text" id="sa" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="School Address" value="${userData.schoolAddress}">
+                            <button onclick="handleSchool()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl text-sm">Next</button>
+                            <button onclick="goBack('step-email')" class="w-full text-slate-400 text-[10px] font-bold uppercase py-2">Back</button>
                         </div>
                     `;
+                    setupEnter(handleSchool);
+                    break;
+
+                case 'step-password':
+                    container.innerHTML = `
+                        <div class="space-y-4">
+                            <h2 class="text-xl font-black text-slate-800 text-center mb-4">Set Password</h2>
+                            <input type="password" id="pw" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="Password">
+                            <input type="password" id="cp" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="Confirm Password">
+                            <button id="btn-final" onclick="handleSignup()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
+                                <span id="btn-text">Create Account</span>
+                                <div id="btn-loader" class="loader hidden" style="border-top-color: white;"></div>
+                            </button>
+                            <button onclick="goBack('step-school')" class="w-full text-slate-400 text-[10px] font-bold uppercase py-2">Back</button>
+                        </div>
+                    `;
+                    setupEnter(handleSignup);
                     break;
             }
         }
 
-        function handleEmail() { 
-            const val = document.getElementById('email').value;
-            if(val.includes('@')) { userData.email = val; currentState = 'signup-details'; render(); } 
+        function setupEnter(fn) {
+            const ins = document.querySelectorAll('input');
+            ins.forEach(i => i.onkeyup = (e) => { if(e.key === 'Enter') fn(); });
+            ins[0].focus();
         }
 
-        function handleDetails() {
+        function goBack(s) { currentState = s; render(); }
+
+        function handleEmail() {
+            userData.email = document.getElementById('email').value;
+            if(userData.email.includes('@')) { currentState = 'step-school'; render(); }
+        }
+
+        function handleSchool() {
             userData.schoolName = document.getElementById('sn').value;
-            userData.password = document.getElementById('pw').value;
-            if(userData.schoolName && userData.password) { currentState = 'signup-final'; render(); }
+            userData.schoolAddress = document.getElementById('sa').value;
+            if(userData.schoolName && userData.schoolAddress) { currentState = 'step-password'; render(); }
         }
 
         async function handleSignup() {
+            const p1 = document.getElementById('pw').value;
+            const p2 = document.getElementById('cp').value;
+            if(p1 !== p2 || p1.length < 6) return;
+
+            userData.password = p1;
             const btn = document.getElementById('btn-final');
             const loader = document.getElementById('btn-loader');
-            btn.disabled = true;
-            loader.classList.remove('hidden');
+            btn.disabled = true; loader.classList.remove('hidden');
 
             try {
                 const res = await fetch(API_URL, {
@@ -120,22 +125,9 @@
                 });
                 const data = await res.json();
                 if(data.message) {
-                    document.getElementById('auth-container').innerHTML = `
-                        <div class="text-center py-10 fade-in">
-                            <div class="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
-                            </div>
-                            <h2 class="text-3xl font-black text-slate-800 mb-2">Welcome!</h2>
-                            <p class="text-slate-500 font-medium mb-8">Your account has been created successfully.</p>
-                            <a href="/login" class="inline-block bg-blue-600 text-white px-10 py-4 rounded-2xl font-bold">Go to Login</a>
-                        </div>
-                    `;
+                    document.getElementById('auth-container').innerHTML = `<div class="text-center py-6"><h2 class="text-xl font-black mb-4">Success!</h2><a href="/login" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold">Log In</a></div>`;
                 }
-            } catch (e) { 
-                alert("Creation failed. Check connection."); 
-                btn.disabled = false; 
-                loader.classList.add('hidden'); 
-            }
+            } catch (e) { btn.disabled = false; loader.classList.add('hidden'); }
         }
 
         render();
