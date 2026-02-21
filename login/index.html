@@ -65,20 +65,34 @@
 
             if (!email || !password) return;
 
-            btn.disabled = true; btnText.innerText = "Verifying..."; btnLoader.classList.remove('hidden');
+            btn.disabled = true; 
+            btnText.innerText = "Verifying..."; 
+            btnLoader.classList.remove('hidden');
 
             try {
                 const res = await fetch(API_URL, {
                     method: 'POST',
+                    mode: 'cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'login', email, password })
                 });
+                
                 const data = await res.json();
+                
                 if (data.user) {
-                    document.getElementById('main-content').innerHTML = `<div class="text-center py-6"><h2 class="text-xl font-black">Logged In!</h2></div>`;
+                    document.getElementById('main-content').innerHTML = `
+                        <div class="text-center py-6 fade-in">
+                            <h2 class="text-xl font-black">Logged In!</h2>
+                            <p class="text-xs text-slate-500">Redirecting to dashboard...</p>
+                        </div>`;
+                    sessionStorage.setItem('libi_user', JSON.stringify(data.user));
                     setTimeout(() => { window.location.href = "/dashboard"; }, 1000);
-                } else { throw new Error(); }
+                } else { 
+                    alert(data.error || "Invalid Credentials");
+                    btn.disabled = false; btnText.innerText = "Sign In"; btnLoader.classList.add('hidden');
+                }
             } catch (err) {
+                alert("Login failed. Check your connection.");
                 btn.disabled = false; btnText.innerText = "Sign In"; btnLoader.classList.add('hidden');
             }
         }
