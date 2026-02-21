@@ -57,42 +57,43 @@
         [emailI, passI].forEach(i => i.onkeyup = (e) => { if(e.key === 'Enter') handleLogin(); });
 
         async function handleLogin() {
-            const email = emailI.value;
+            const email = emailI.value.trim();
             const password = passI.value;
             const btn = document.getElementById('btn-login');
             const btnText = document.getElementById('btn-text');
             const btnLoader = document.getElementById('btn-loader');
 
-            if (!email || !password) return;
+            if (!email || !password) { alert("Please fill in all fields."); return; }
 
             btn.disabled = true; 
-            btnText.innerText = "Verifying..."; 
+            btnText.innerText = "Logging in..."; 
             btnLoader.classList.remove('hidden');
 
             try {
                 const res = await fetch(API_URL, {
                     method: 'POST',
-                    mode: 'cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'login', email, password })
                 });
                 
                 const data = await res.json();
+                console.log("Login result:", data);
                 
-                if (data.user) {
+                if (data.user || res.ok) {
                     document.getElementById('main-content').innerHTML = `
                         <div class="text-center py-6 fade-in">
                             <h2 class="text-xl font-black">Logged In!</h2>
                             <p class="text-xs text-slate-500">Redirecting to dashboard...</p>
                         </div>`;
-                    sessionStorage.setItem('libi_user', JSON.stringify(data.user));
+                    if (data.user) sessionStorage.setItem('libi_user', JSON.stringify(data.user));
                     setTimeout(() => { window.location.href = "/dashboard"; }, 1000);
                 } else { 
-                    alert(data.error || "Invalid Credentials");
+                    alert("Error: " + (data.error || "Invalid Credentials"));
                     btn.disabled = false; btnText.innerText = "Sign In"; btnLoader.classList.add('hidden');
                 }
             } catch (err) {
-                alert("Login failed. Check your connection.");
+                console.error("Login Error:", err);
+                alert("Login failed. Please check your network connection.");
                 btn.disabled = false; btnText.innerText = "Sign In"; btnLoader.classList.add('hidden');
             }
         }
