@@ -2,164 +2,106 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LibiShelf | The Future of School Library Management</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LibiShelf | Modern Library Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; scroll-behavior: smooth; }
-        .gradient-text {
-            background: linear-gradient(90deg, #2563eb, #7c3aed);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .hero-bg {
-            background-image: radial-gradient(circle at 2px 2px, rgba(0,0,0,0.05) 1px, transparent 0);
-            background-size: 40px 40px;
-        }
-        .pricing-card:hover { transform: translateY(-8px); }
+        .gradient-text { background: linear-gradient(90deg, #2563eb, #7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .hero-bg { background-image: radial-gradient(circle at 2px 2px, rgba(0,0,0,0.03) 1px, transparent 0); background-size: 30px 30px; }
     </style>
 </head>
-<body class="bg-white text-slate-900">
+<body class="bg-white text-slate-900 overflow-x-hidden">
 
-    <!-- Navigation -->
-    <nav class="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
-        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+    <nav class="fixed w-full z-50 bg-white/90 backdrop-blur-md border-b border-slate-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
             <div class="flex items-center gap-2">
-                <img src="logo.svg" alt="LibiShelf" class="h-8 w-auto" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3389/3389081.png'">
-                <span class="text-xl font-extrabold tracking-tight">LibiShelf</span>
+                <img src="logo.svg" alt="LibiShelf" class="h-6 w-auto" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3389/3389081.png'">
+                <span class="text-base font-extrabold tracking-tight">LibiShelf</span>
             </div>
-            <div class="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-600">
-                <a href="#features" class="hover:text-blue-600 transition">Features</a>
-                <a href="#pricing" class="hover:text-blue-600 transition">Pricing</a>
+            <div class="flex items-center gap-3 text-xs font-bold text-slate-600">
                 <a href="/login" class="hover:text-blue-600 transition">Log In</a>
-                <a href="/signup" class="bg-blue-600 text-white px-6 py-2.5 rounded-full hover:bg-blue-700 transition shadow-lg shadow-blue-200">Start for Free</a>
+                <a href="/signup" class="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700 transition">Get Started</a>
             </div>
         </div>
     </nav>
 
-    <!-- Hero Section -->
-    <section class="pt-32 pb-20 hero-bg">
-        <div class="max-w-7xl mx-auto px-6 text-center">
-            <div class="inline-block px-4 py-1.5 mb-6 bg-blue-50 border border-blue-100 rounded-full">
-                <span class="text-blue-600 text-xs font-bold uppercase tracking-widest">New: Offline Cataloging Mode</span>
-            </div>
-            <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-[1.1]">
-                Your school library, <br>
-                <span class="gradient-text">reimagined.</span>
+    <section class="pt-28 pb-12 hero-bg px-4">
+        <div class="max-w-7xl mx-auto text-center">
+            <h1 class="text-3xl sm:text-5xl font-extrabold mb-4 tracking-tight leading-tight">
+                Manage your school library <br>
+                <span class="gradient-text">with ease.</span>
             </h1>
-            <p class="max-w-2xl mx-auto text-slate-500 text-lg md:text-xl mb-10 leading-relaxed">
-                The most modern, easy-to-use library management system designed specifically for students and educators. Catalog thousands of books in minutes.
+            <p class="max-w-md mx-auto text-slate-500 text-sm mb-8 leading-relaxed">
+                A simple, powerful way to catalog books, track loans, and manage your entire library from any device.
             </p>
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <a href="/signup" class="w-full sm:w-auto bg-slate-900 text-white px-10 py-4 rounded-2xl font-bold text-lg hover:bg-black transition-all shadow-xl active:scale-95">Get Started Now</a>
-                <a href="#features" class="w-full sm:w-auto bg-white border border-slate-200 text-slate-600 px-10 py-4 rounded-2xl font-bold text-lg hover:bg-slate-50 transition-all active:scale-95">See Features</a>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <a href="/signup" class="w-full sm:w-auto bg-slate-900 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-lg">Get Started</a>
+                <a href="#features" class="w-full sm:w-auto bg-white border border-slate-200 text-slate-600 px-8 py-3 rounded-xl font-bold text-sm">Features</a>
             </div>
-            <div class="mt-16 relative">
-                <div class="absolute inset-0 bg-blue-500/10 blur-[100px] rounded-full"></div>
-                <img src="background.png" alt="Dashboard Preview" class="relative rounded-[2rem] shadow-2xl border border-slate-200 max-w-5xl mx-auto brightness-90">
-            </div>
-        </div>
-    </section>
-
-    <!-- Features Grid -->
-    <section id="features" class="py-24 bg-slate-50">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="text-center mb-16">
-                <h2 class="text-3xl font-black mb-4">Everything you need to thrive</h2>
-                <p class="text-slate-500">Powerful tools that keep your library organized and engaging.</p>
-            </div>
-            <div class="grid md:grid-cols-3 gap-8">
-                <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all">
-                    <div class="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600 mb-6 text-2xl">⚡</div>
-                    <h3 class="text-xl font-bold mb-3">Instant Scan</h3>
-                    <p class="text-slate-500 text-sm leading-relaxed">Use your device camera to scan barcodes and fetch book data instantly using our AI-powered lookup.</p>
-                </div>
-                <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all">
-                    <div class="w-12 h-12 bg-purple-100 rounded-2xl flex items-center justify-center text-purple-600 mb-6 text-2xl">📶</div>
-                    <h3 class="text-xl font-bold mb-3">Offline Mode</h3>
-                    <p class="text-slate-500 text-sm leading-relaxed">WiFi down? No problem. LibiShelf saves your scans locally and syncs them automatically when you're back online.</p>
-                </div>
-                <div class="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all">
-                    <div class="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center text-green-600 mb-6 text-2xl">🏆</div>
-                    <h3 class="text-xl font-bold mb-3">Reading Challenges</h3>
-                    <p class="text-slate-500 text-sm leading-relaxed">Gamify reading for students with custom badges, goals, and leaderboards to boost library engagement.</p>
-                </div>
+            <div class="mt-12">
+                <img src="background.png" alt="Preview" class="rounded-2xl shadow-xl border border-slate-200 max-w-full md:max-w-3xl mx-auto">
             </div>
         </div>
     </section>
 
-    <!-- Pricing Section -->
-    <section id="pricing" class="py-24">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="text-center mb-16">
-                <h2 class="text-3xl font-black mb-4 tracking-tight">Simple, Transparent Pricing</h2>
-                <p class="text-slate-500">Choose the plan that fits your school's collection.</p>
+    <section id="features" class="py-16 px-4">
+        <div class="max-w-5xl mx-auto grid sm:grid-cols-3 gap-8">
+            <div class="text-center">
+                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 text-xl font-bold">📚</div>
+                <h3 class="font-bold mb-2">Easy Cataloging</h3>
+                <p class="text-xs text-slate-500">Scan barcodes or enter ISBNs to add books in seconds.</p>
             </div>
-            <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                <!-- Pro Plan -->
-                <div class="pricing-card bg-white border-2 border-slate-100 p-10 rounded-[2.5rem] shadow-sm transition-all duration-300">
-                    <h3 class="text-2xl font-black text-slate-800 mb-2">Pro Plan</h3>
-                    <div class="flex items-baseline gap-1 mb-6">
-                        <span class="text-5xl font-black text-slate-900">$5</span>
-                        <span class="text-slate-400 font-bold">/mo</span>
+            <div class="text-center">
+                <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mx-auto mb-4 text-xl font-bold">⚡</div>
+                <h3 class="font-bold mb-2">Fast Checkout</h3>
+                <p class="text-xs text-slate-500">Track student loans and returns with one click.</p>
+            </div>
+            <div class="text-center">
+                <div class="w-12 h-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center mx-auto mb-4 text-xl font-bold">📱</div>
+                <h3 class="font-bold mb-2">Mobile Friendly</h3>
+                <p class="text-xs text-slate-500">Access your library from tablets, phones, or desktops.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="pricing" class="py-16 bg-slate-50 px-4">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-10">
+                <h2 class="text-2xl font-black mb-2">Simple Pricing</h2>
+            </div>
+            <div class="grid sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                <div class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
+                    <h3 class="text-lg font-bold text-slate-800">Pro Plan</h3>
+                    <div class="flex items-baseline gap-1 my-2">
+                        <span class="text-3xl font-black">$5</span>
+                        <span class="text-slate-400 text-xs font-bold">/month</span>
                     </div>
-                    <ul class="space-y-4 mb-10 text-slate-600 font-medium">
-                        <li class="flex items-center gap-3">
-                            <span class="text-blue-600 font-bold">✓</span> Up to 5,000 Items
-                        </li>
-                        <li class="flex items-center gap-3">
-                            <span class="text-blue-600 font-bold">✓</span> Offline Cataloging
-                        </li>
-                        <li class="flex items-center gap-3">
-                            <span class="text-blue-600 font-bold">✓</span> Reading Challenges
-                        </li>
+                    <ul class="space-y-2 mb-6 text-xs text-slate-500">
+                        <li>✓ Up to 5,000 Items</li>
+                        <li>✓ Offline Management</li>
                     </ul>
-                    <a href="/signup" class="block text-center w-full py-4 bg-blue-50 text-blue-600 font-bold rounded-2xl hover:bg-blue-100 transition">Get Started</a>
+                    <a href="/signup" class="block text-center w-full py-2.5 bg-blue-50 text-blue-600 font-bold rounded-lg text-xs">Select Pro</a>
                 </div>
-                <!-- Ultimate Plan -->
-                <div class="pricing-card bg-slate-900 border-2 border-slate-900 p-10 rounded-[2.5rem] shadow-2xl transition-all duration-300 relative overflow-hidden">
-                    <div class="absolute top-4 right-4 bg-blue-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">Most Popular</div>
-                    <h3 class="text-2xl font-black text-white mb-2">Ultimate Plan</h3>
-                    <div class="flex items-baseline gap-1 mb-6">
-                        <span class="text-5xl font-black text-white">$10</span>
-                        <span class="text-slate-400 font-bold">/mo</span>
+                <div class="bg-slate-900 p-6 rounded-2xl shadow-xl text-white">
+                    <h3 class="text-lg font-bold">Ultimate Plan</h3>
+                    <div class="flex items-baseline gap-1 my-2">
+                        <span class="text-3xl font-black">$10</span>
+                        <span class="text-slate-500 text-xs font-bold">/month</span>
                     </div>
-                    <ul class="space-y-4 mb-10 text-slate-300 font-medium">
-                        <li class="flex items-center gap-3">
-                            <span class="text-blue-400 font-bold">✓</span> Up to 100,000 Items
-                        </li>
-                        <li class="flex items-center gap-3">
-                            <span class="text-blue-400 font-bold">✓</span> Priority AI Lookup
-                        </li>
-                        <li class="flex items-center gap-3">
-                            <span class="text-blue-400 font-bold">✓</span> 24/7 School Support
-                        </li>
+                    <ul class="space-y-2 mb-6 text-xs text-slate-400">
+                        <li>✓ Unlimited Items</li>
+                        <li>✓ Priority Support</li>
                     </ul>
-                    <a href="/signup" class="block text-center w-full py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 transition shadow-lg shadow-blue-900/40">Get Started</a>
+                    <a href="/signup" class="block text-center w-full py-2.5 bg-blue-600 text-white font-bold rounded-lg text-xs">Select Ultimate</a>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Final CTA -->
-    <section class="py-24 bg-slate-50">
-        <div class="max-w-5xl mx-auto px-6">
-            <div class="bg-slate-900 rounded-[3rem] p-12 md:p-20 text-center relative overflow-hidden shadow-2xl">
-                <div class="absolute top-0 right-0 w-64 h-64 bg-blue-600/20 blur-[80px] rounded-full -translate-y-1/2 translate-x-1/2"></div>
-                <h2 class="text-3xl md:text-5xl font-black text-white mb-6 relative z-10">Ready to transform your library?</h2>
-                <p class="text-slate-400 text-lg mb-10 relative z-10">Join schools around the world using LibiShelf to empower their students.</p>
-                <div class="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-10">
-                    <a href="/signup" class="w-full sm:w-auto bg-blue-600 text-white px-10 py-4 rounded-2xl font-bold text-lg hover:bg-blue-700 transition shadow-xl shadow-blue-900/40">Create Free Account</a>
-                    <a href="/login" class="w-full sm:w-auto bg-transparent border border-white/20 text-white px-10 py-4 rounded-2xl font-bold text-lg hover:bg-white/5 transition">Sign In</a>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
     <footer class="py-12 border-t border-slate-100 text-center">
-        <p class="text-slate-400 text-sm">© 2023 LibiShelf. Designed for education.</p>
+        <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">© 2023 LibiShelf Library Systems</p>
     </footer>
 
 </body>
