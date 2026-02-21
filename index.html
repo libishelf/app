@@ -14,7 +14,6 @@
             overflow-x: hidden;
         }
         
-        /* Blurred Background */
         .bg-image {
             position: fixed;
             top: 0;
@@ -25,7 +24,7 @@
             background-size: cover;
             background-position: center;
             filter: blur(8px) brightness(0.9);
-            transform: scale(1.1); /* Prevents white edges from blur */
+            transform: scale(1.1);
             z-index: -1;
         }
 
@@ -35,7 +34,6 @@
         .plan-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .plan-card:hover { transform: translateY(-4px); }
 
-        /* Glassmorphism for the main card */
         .glass-card {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
@@ -89,6 +87,23 @@
             }
         }
 
+        // Helper to focus the first input and handle Enter key
+        function setupPageActions(primaryBtnId) {
+            // Auto-focus first input
+            const firstInput = container.querySelector('input');
+            if (firstInput) firstInput.focus();
+
+            // Enter key trigger
+            const inputs = container.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('keyup', (event) => {
+                    if (event.key === 'Enter') {
+                        document.getElementById(primaryBtnId).click();
+                    }
+                });
+            });
+        }
+
         function render() {
             container.innerHTML = '';
             
@@ -104,10 +119,11 @@
                                 <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Email Address</label>
                                 <input type="email" id="email" value="${userData.email}" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="e.g. librarian@school.edu">
                             </div>
-                            <button onclick="handleEmailContinue()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-200 transition">Continue</button>
+                            <button id="btn-email" onclick="handleEmailContinue()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-200 transition">Continue</button>
                             <p class="text-center text-sm text-slate-500 mt-6">Already have an account? <a href="#" onclick="setState('login')" class="text-blue-600 font-bold hover:underline">Sign In</a></p>
                         </div>
                     `;
+                    setupPageActions('btn-email');
                     break;
 
                 case 'signup-details':
@@ -118,9 +134,10 @@
                             <input type="text" id="sa" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="Full School Address">
                             <input type="password" id="pw" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="Create Password">
                             <input type="password" id="cp" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="Confirm Password">
-                            <button onclick="handleDetailsContinue()" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl mt-2 shadow-lg shadow-blue-200">Continue</button>
+                            <button id="btn-details" onclick="handleDetailsContinue()" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl mt-2 shadow-lg shadow-blue-200">Continue</button>
                         </div>
                     `;
+                    setupPageActions('btn-details');
                     break;
 
                 case 'signup-books':
@@ -131,9 +148,10 @@
                             <div class="relative mb-8">
                                 <input type="number" id="bc" class="w-full px-4 py-8 bg-slate-50 border-2 border-slate-100 rounded-3xl text-center text-5xl font-black text-blue-600 focus:border-blue-500 outline-none transition" placeholder="0">
                             </div>
-                            <button onclick="handleBooksContinue()" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-200">See Recommended Plans</button>
+                            <button id="btn-books" onclick="handleBooksContinue()" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-200">See Recommended Plans</button>
                         </div>
                     `;
+                    setupPageActions('btn-books');
                     break;
 
                 case 'signup-plans':
@@ -167,8 +185,10 @@
                                 </ul>
                             </div>
                         </div>
-                        <button onclick="handleSignupFinal()" id="finalBtn" class="w-full bg-slate-900 hover:bg-black text-white font-bold py-4 rounded-2xl mt-8 shadow-xl transition">Complete Setup</button>
+                        <button onclick="handleSignupFinal()" id="btn-final" class="w-full bg-slate-900 hover:bg-black text-white font-bold py-4 rounded-2xl mt-8 shadow-xl transition">Complete Setup</button>
                     `;
+                    // No inputs on this page, but we can make Enter trigger the final button
+                    window.onkeyup = (e) => { if(e.key === 'Enter' && currentState === 'signup-plans') handleSignupFinal(); };
                     break;
 
                 case 'success':
@@ -179,9 +199,10 @@
                             </div>
                             <h2 class="text-2xl font-bold mb-2 text-slate-800">Success!</h2>
                             <p class="text-slate-500 text-sm mb-8">Your LibiShelf account is ready.</p>
-                            <button onclick="setState('login')" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl">Go to Sign In</button>
+                            <button id="btn-success" onclick="setState('login')" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl">Go to Sign In</button>
                         </div>
                     `;
+                    window.onkeyup = (e) => { if(e.key === 'Enter' && currentState === 'success') setState('login'); };
                     break;
 
                 case 'login':
@@ -193,15 +214,21 @@
                             </div>
                             <input type="email" id="le" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="Email Address">
                             <input type="password" id="lp" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="Password">
-                            <button onclick="handleLogin()" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-200">Sign In</button>
+                            <button id="btn-login" onclick="handleLogin()" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-200">Sign In</button>
                             <p class="text-center text-sm text-slate-500 mt-6">New user? <a href="#" onclick="setState('signup-email')" class="text-blue-600 font-bold hover:underline">Create Account</a></p>
                         </div>
                     `;
+                    setupPageActions('btn-login');
                     break;
             }
         }
 
-        function setState(s) { currentState = s; render(); }
+        function setState(s) { 
+            // Reset global listeners
+            window.onkeyup = null;
+            currentState = s; 
+            render(); 
+        }
 
         function handleEmailContinue() {
             userData.email = document.getElementById('email').value;
@@ -225,7 +252,8 @@
         }
 
         async function handleSignupFinal() {
-            const btn = document.getElementById('finalBtn');
+            const btn = document.getElementById('btn-final');
+            if(!btn || btn.disabled) return;
             btn.innerText = "Processing...";
             btn.disabled = true;
             const res = await apiRequest({ action: 'signup', ...userData });
@@ -256,4 +284,4 @@
         render();
     </script>
 </body>
-</html>
+</html>s
