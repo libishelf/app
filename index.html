@@ -7,26 +7,58 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        
+        /* Blurred Background */
+        .bg-image {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('background.png');
+            background-size: cover;
+            background-position: center;
+            filter: blur(8px) brightness(0.9);
+            transform: scale(1.1); /* Prevents white edges from blur */
+            z-index: -1;
+        }
+
         .fade-in { animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
         .plan-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .plan-card:hover { transform: translateY(-4px); }
+
+        /* Glassmorphism for the main card */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col items-center justify-center p-4">
+<body class="min-h-screen flex items-center justify-center p-6">
+
+    <div class="bg-image"></div>
+
+    <!-- Top Left Branding -->
+    <div class="fixed top-8 left-8 flex items-center gap-3 z-10">
+        <img src="logo.svg" alt="LibiShelf Logo" class="h-10 w-auto" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3389/3389081.png'">
+        <div class="flex flex-col">
+            <h1 class="text-xl font-extrabold tracking-tight text-white drop-shadow-md">LibiShelf</h1>
+            <p class="text-white/80 text-[10px] font-medium tracking-widest uppercase drop-shadow-sm">Empowering your school library</p>
+        </div>
+    </div>
 
     <!-- Main Container -->
-    <div class="w-full max-w-lg bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden fade-in">
-        
-        <!-- Header -->
-        <div class="pt-10 pb-6 flex flex-col items-center">
-            <img src="logo.svg" alt="LibiShelf Logo" class="h-12 w-auto mb-3" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3389/3389081.png'; this.style.opacity='0.5'">
-            <h1 class="text-2xl font-extrabold tracking-tight text-slate-800">LibiShelf</h1>
-            <p class="text-slate-400 text-sm">Empowering your school library</p>
-        </div>
-
-        <div class="px-8 pb-10">
+    <div class="w-full max-w-lg glass-card rounded-[2.5rem] shadow-2xl overflow-hidden fade-in">
+        <div class="px-10 py-12">
             <div id="auth-container">
                 <!-- Content injected here -->
             </div>
@@ -34,7 +66,6 @@
     </div>
 
     <script>
-        // --- YOUR LIVE API GATEWAY ---
         const API_URL = 'https://1vs0akvj6e.execute-api.us-east-1.amazonaws.com/';
 
         let currentState = 'signup-email';
@@ -64,13 +95,16 @@
             switch(currentState) {
                 case 'signup-email':
                     container.innerHTML = `
-                        <div class="space-y-4">
-                            <div class="text-center mb-6">
-                                <h2 class="text-xl font-bold">Get Started</h2>
-                                <p class="text-slate-500 text-sm">Enter your email to join LibiShelf</p>
+                        <div class="space-y-5">
+                            <div class="mb-8">
+                                <h2 class="text-2xl font-bold text-slate-800">Create Account</h2>
+                                <p class="text-slate-500 text-sm mt-1">Start organizing your collection today.</p>
                             </div>
-                            <input type="email" id="email" value="${userData.email}" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Email Address">
-                            <button onclick="handleEmailContinue()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl shadow-lg shadow-blue-200 transition">Continue</button>
+                            <div class="space-y-1">
+                                <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Email Address</label>
+                                <input type="email" id="email" value="${userData.email}" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="e.g. librarian@school.edu">
+                            </div>
+                            <button onclick="handleEmailContinue()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-200 transition">Continue</button>
                             <p class="text-center text-sm text-slate-500 mt-6">Already have an account? <a href="#" onclick="setState('login')" class="text-blue-600 font-bold hover:underline">Sign In</a></p>
                         </div>
                     `;
@@ -78,13 +112,13 @@
 
                 case 'signup-details':
                     container.innerHTML = `
-                        <div class="space-y-3">
-                            <h2 class="text-lg font-bold text-center mb-4">Account Details</h2>
+                        <div class="space-y-4">
+                            <h2 class="text-xl font-bold text-slate-800 mb-4 text-center">School Information</h2>
                             <input type="text" id="sn" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="School Name">
-                            <input type="text" id="sa" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="School Address">
-                            <input type="password" id="pw" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="Password">
+                            <input type="text" id="sa" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="Full School Address">
+                            <input type="password" id="pw" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="Create Password">
                             <input type="password" id="cp" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="Confirm Password">
-                            <button onclick="handleDetailsContinue()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl mt-2 shadow-lg shadow-blue-200">Continue</button>
+                            <button onclick="handleDetailsContinue()" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl mt-2 shadow-lg shadow-blue-200">Continue</button>
                         </div>
                     `;
                     break;
@@ -92,12 +126,12 @@
                 case 'signup-books':
                     container.innerHTML = `
                         <div class="text-center">
-                            <h2 class="text-lg font-bold mb-2">Almost there!</h2>
-                            <p class="text-sm text-slate-500 mb-6">How many books are in your collection?</p>
-                            <div class="relative mb-6">
-                                <input type="number" id="bc" class="w-full px-4 py-6 bg-slate-50 border-2 border-slate-100 rounded-2xl text-center text-4xl font-black text-blue-600 focus:border-blue-500 outline-none transition" placeholder="0">
+                            <h2 class="text-xl font-bold text-slate-800 mb-2">Collection Size</h2>
+                            <p class="text-sm text-slate-500 mb-8">Approximate number of books in your library</p>
+                            <div class="relative mb-8">
+                                <input type="number" id="bc" class="w-full px-4 py-8 bg-slate-50 border-2 border-slate-100 rounded-3xl text-center text-5xl font-black text-blue-600 focus:border-blue-500 outline-none transition" placeholder="0">
                             </div>
-                            <button onclick="handleBooksContinue()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-200">See Recommended Plans</button>
+                            <button onclick="handleBooksContinue()" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-200">See Recommended Plans</button>
                         </div>
                     `;
                     break;
@@ -105,50 +139,35 @@
                 case 'signup-plans':
                     const over5k = userData.bookCount > 5000;
                     container.innerHTML = `
-                        <h2 class="text-xl font-bold text-center mb-6">Choose your plan</h2>
+                        <h2 class="text-xl font-bold text-slate-800 text-center mb-8">Select a Plan</h2>
                         <div class="space-y-4">
-                            <!-- Pro Plan -->
-                            <div onclick="userData.selectedPlan='pro';render()" class="plan-card relative cursor-pointer border-2 p-5 rounded-2xl ${userData.selectedPlan === 'pro' ? 'border-blue-500 bg-blue-50/50 ring-4 ring-blue-50' : 'border-slate-100 hover:border-slate-200'}">
-                                ${!over5k ? '<span class="absolute -top-3 right-4 bg-blue-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-md">Recommended</span>' : ''}
-                                <div class="flex justify-between items-center mb-3">
-                                    <div>
-                                        <h3 class="font-bold text-slate-800 text-lg">Pro Plan</h3>
-                                        <p class="text-xs text-slate-500">For smaller libraries</p>
-                                    </div>
-                                    <div class="text-right">
-                                        <span class="text-2xl font-black text-slate-900">$5</span>
-                                        <span class="text-xs text-slate-400 block">per month</span>
-                                    </div>
+                            <div onclick="userData.selectedPlan='pro';render()" class="plan-card relative cursor-pointer border-2 p-6 rounded-3xl ${userData.selectedPlan === 'pro' ? 'border-blue-500 bg-blue-50 ring-4 ring-blue-50' : 'border-slate-100 bg-white hover:border-slate-200'}">
+                                ${!over5k ? '<span class="absolute -top-3 right-6 bg-blue-600 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-tighter shadow-md">Recommended</span>' : ''}
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="font-bold text-slate-800 text-lg">Pro Plan</h3>
+                                    <div class="text-right"><span class="text-2xl font-black text-slate-900">$5</span><span class="text-xs text-slate-400">/mo</span></div>
                                 </div>
-                                <ul class="grid grid-cols-2 gap-2 text-[11px] text-slate-600 font-medium">
-                                    <li class="flex items-center">✅ 5k Items</li>
-                                    <li class="flex items-center">✅ Offline Mode</li>
-                                    <li class="flex items-center">✅ Proofreading</li>
-                                    <li class="flex items-center">✅ Challenges</li>
+                                <ul class="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] text-slate-600">
+                                    <li>• 5,000 Items</li>
+                                    <li>• Offline Mode</li>
+                                    <li>• Proofreading</li>
+                                    <li>• Challenges</li>
                                 </ul>
                             </div>
 
-                            <!-- Ultimate Plan -->
-                            <div onclick="userData.selectedPlan='ultimate';render()" class="plan-card relative cursor-pointer border-2 p-5 rounded-2xl ${userData.selectedPlan === 'ultimate' ? 'border-blue-500 bg-blue-50/50 ring-4 ring-blue-50' : 'border-slate-100 hover:border-slate-200'}">
-                                ${over5k ? '<span class="absolute -top-3 right-4 bg-blue-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-md">Best Value</span>' : ''}
-                                <div class="flex justify-between items-center mb-3">
-                                    <div>
-                                        <h3 class="font-bold text-slate-800 text-lg">Ultimate Plan</h3>
-                                        <p class="text-xs text-slate-500">For large collections</p>
-                                    </div>
-                                    <div class="text-right">
-                                        <span class="text-2xl font-black text-slate-900">$10</span>
-                                        <span class="text-xs text-slate-400 block">per month</span>
-                                    </div>
+                            <div onclick="userData.selectedPlan='ultimate';render()" class="plan-card relative cursor-pointer border-2 p-6 rounded-3xl ${userData.selectedPlan === 'ultimate' ? 'border-blue-500 bg-blue-50 ring-4 ring-blue-50' : 'border-slate-100 bg-white hover:border-slate-200'}">
+                                ${over5k ? '<span class="absolute -top-3 right-6 bg-blue-600 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-tighter shadow-md">Best Value</span>' : ''}
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="font-bold text-slate-800 text-lg">Ultimate Plan</h3>
+                                    <div class="text-right"><span class="text-2xl font-black text-slate-900">$10</span><span class="text-xs text-slate-400">/mo</span></div>
                                 </div>
-                                <ul class="text-[11px] text-slate-600 font-medium space-y-1">
-                                    <li class="flex items-center">✨ Everything in Pro</li>
-                                    <li class="flex items-center">✨ Up to 100,000 items</li>
-                                    <li class="flex items-center">✨ Priority Support & Syncing</li>
+                                <ul class="text-[11px] text-slate-600 space-y-1">
+                                    <li>• All Pro features included</li>
+                                    <li>• Up to 100,000 items catalog</li>
                                 </ul>
                             </div>
                         </div>
-                        <button onclick="handleSignupFinal()" id="finalBtn" class="w-full bg-slate-900 hover:bg-black text-white font-bold py-4 rounded-2xl mt-8 shadow-xl transition">Complete Registration</button>
+                        <button onclick="handleSignupFinal()" id="finalBtn" class="w-full bg-slate-900 hover:bg-black text-white font-bold py-4 rounded-2xl mt-8 shadow-xl transition">Complete Setup</button>
                     `;
                     break;
 
@@ -158,21 +177,24 @@
                             <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
                                 <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
                             </div>
-                            <h2 class="text-2xl font-bold mb-2">You're all set!</h2>
-                            <p class="text-slate-500 text-sm mb-8">Your LibiShelf account is ready to go.</p>
-                            <button onclick="setState('login')" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl">Sign In to Dashboard</button>
+                            <h2 class="text-2xl font-bold mb-2 text-slate-800">Success!</h2>
+                            <p class="text-slate-500 text-sm mb-8">Your LibiShelf account is ready.</p>
+                            <button onclick="setState('login')" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl">Go to Sign In</button>
                         </div>
                     `;
                     break;
 
                 case 'login':
                     container.innerHTML = `
-                        <div class="space-y-4">
-                            <h2 class="text-xl font-bold text-center mb-6">Welcome Back</h2>
-                            <input type="email" id="le" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="Email">
+                        <div class="space-y-5">
+                            <div class="mb-8 text-center">
+                                <h2 class="text-2xl font-bold text-slate-800">Welcome Back</h2>
+                                <p class="text-slate-500 text-sm mt-1">Sign in to manage your library.</p>
+                            </div>
+                            <input type="email" id="le" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="Email Address">
                             <input type="password" id="lp" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="Password">
-                            <button onclick="handleLogin()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-200">Sign In</button>
-                            <p class="text-center text-sm text-slate-500 mt-6">New to LibiShelf? <a href="#" onclick="setState('signup-email')" class="text-blue-600 font-bold hover:underline">Create Account</a></p>
+                            <button onclick="handleLogin()" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-200">Sign In</button>
+                            <p class="text-center text-sm text-slate-500 mt-6">New user? <a href="#" onclick="setState('signup-email')" class="text-blue-600 font-bold hover:underline">Create Account</a></p>
                         </div>
                     `;
                     break;
@@ -183,7 +205,7 @@
 
         function handleEmailContinue() {
             userData.email = document.getElementById('email').value;
-            if(!userData.email.includes('@')) return showMessage("Invalid email");
+            if(!userData.email.includes('@')) return showMessage("Please enter a valid email");
             setState('signup-details');
         }
 
@@ -191,8 +213,8 @@
             userData.schoolName = document.getElementById('sn').value;
             userData.schoolAddress = document.getElementById('sa').value;
             userData.password = document.getElementById('pw').value;
-            if(userData.password.length < 6) return showMessage("Password too short");
-            if(userData.password !== document.getElementById('cp').value) return showMessage("Passwords mismatch");
+            if(userData.password.length < 6) return showMessage("Password must be at least 6 chars");
+            if(userData.password !== document.getElementById('cp').value) return showMessage("Passwords do not match");
             setState('signup-books');
         }
 
@@ -204,16 +226,11 @@
 
         async function handleSignupFinal() {
             const btn = document.getElementById('finalBtn');
-            btn.innerText = "Creating Account...";
+            btn.innerText = "Processing...";
             btn.disabled = true;
-            
             const res = await apiRequest({ action: 'signup', ...userData });
             if(res.message) setState('success');
-            else {
-                showMessage(res.error || "Signup failed");
-                btn.innerText = "Complete Registration";
-                btn.disabled = false;
-            }
+            else { showMessage(res.error || "Signup failed"); btn.innerText = "Complete Setup"; btn.disabled = false; }
         }
 
         async function handleLogin() {
@@ -221,19 +238,16 @@
             const password = document.getElementById('lp').value;
             const res = await apiRequest({ action: 'login', email, password });
             if(res.user) {
-                showMessage("Success! Logging you in...");
+                showMessage("Login successful!");
                 setTimeout(() => {
-                    // Placeholder for dashboard redirect
-                    document.body.innerHTML = `<div class="p-10 text-center"><h1 class="text-2xl font-bold">Welcome to ${res.user.SchoolName}'s Dashboard</h1><p class="mt-4 text-slate-500 italic">Dashboard coming soon!</p></div>`;
-                }, 1500);
-            } else {
-                showMessage(res.error || "Invalid login");
-            }
+                    document.body.innerHTML = `<div class="p-20 text-center text-white"><h1 class="text-4xl font-bold">Welcome, ${res.user.SchoolName}</h1></div>`;
+                }, 1000);
+            } else { showMessage(res.error || "Invalid login"); }
         }
 
         function showMessage(txt) {
             const t = document.createElement('div');
-            t.className = 'fixed top-4 bg-slate-900 text-white px-6 py-3 rounded-2xl text-xs font-bold left-1/2 -translate-x-1/2 shadow-2xl z-50 fade-in';
+            t.className = 'fixed top-6 bg-white text-slate-900 border border-slate-200 px-6 py-3 rounded-2xl text-[11px] font-bold left-1/2 -translate-x-1/2 shadow-2xl z-50 fade-in';
             t.innerText = txt;
             document.body.appendChild(t);
             setTimeout(() => t.remove(), 4000);
