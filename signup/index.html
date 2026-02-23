@@ -2,166 +2,185 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Join LibiShelf</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up | LibiShelf</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .bg-image { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: url('../background.png'); background-size: cover; background-position: center; filter: blur(8px) brightness(0.8); z-index: -1; }
-        .glass-card { background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.2); max-height: 90vh; overflow-y: auto; width: 100%; max-width: 400px; margin-top: 4rem; }
-        .loader { border: 2px solid rgba(0,0,0,0.1); border-radius: 50%; border-top: 2px solid #2563eb; width: 14px; height: 14px; animation: spin 0.8s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        input { font-size: 16px !important; }
+        body {
+            /* Path adjusted to look one level up for the background image */
+            background: linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), url('../background.png') no-repeat center center fixed;
+            background-size: cover;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+        }
     </style>
 </head>
-<body class="p-4">
-    <div class="bg-image"></div>
+<body class="min-h-screen flex items-center justify-center p-6">
 
-    <div class="fixed top-8 left-0 right-0 z-50 flex justify-center sm:justify-start sm:left-8">
-        <a href="/" class="flex items-center gap-2">
-            <img src="../logo.svg" alt="Logo" class="h-8 w-auto drop-shadow-md" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3389/3389081.png'">
-            <h1 class="text-xl font-black text-white drop-shadow-md">LibiShelf</h1>
-        </a>
-    </div>
+    <div class="glass-panel w-full max-w-md rounded-3xl shadow-2xl p-8 border border-white/50">
+        <!-- Logo -->
+        <div class="text-center mb-8">
+            <a href="../">
+                <img src="../logo.svg" alt="LibiShelf" class="h-14 w-14 mx-auto mb-4">
+            </a>
+            <h1 id="step-title" class="text-2xl font-bold text-slate-800">Get Started</h1>
+            <p id="step-sub" class="text-slate-500">Enter your school email to begin</p>
+        </div>
 
-    <div class="glass-card rounded-[2rem] shadow-2xl fade-in">
-        <div class="px-8 py-10" id="auth-container">
-            <!-- Steps -->
+        <!-- Step 1: Email -->
+        <div id="step-1" class="space-y-4">
+            <input type="email" id="email" placeholder="principal@yourschool.edu" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <button onclick="goToStep2()" id="step1-btn" class="w-full py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition">Continue</button>
+        </div>
+
+        <!-- Step 2: School Info -->
+        <div id="step-2" class="hidden space-y-4">
+            <input type="text" id="school-name" placeholder="Full School Name" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none">
+            <input type="text" id="school-address" placeholder="Street Address" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none">
+            <div class="grid grid-cols-2 gap-4">
+                <input type="text" id="city" placeholder="City" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none">
+                <input type="text" id="state" placeholder="State" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none">
+            </div>
+            <input type="text" id="zip" placeholder="Zip Code" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none">
+            <button onclick="goToStep3()" class="w-full py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200">Continue</button>
+        </div>
+
+        <!-- Step 3: Password -->
+        <div id="step-3" class="hidden space-y-4">
+            <input type="password" id="password" placeholder="Create Password" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none">
+            <input type="password" id="confirm-password" placeholder="Confirm Password" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none">
+            <button onclick="finishSignUp()" id="finish-btn" class="w-full py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200">Create Account</button>
+        </div>
+
+        <!-- Success Message -->
+        <div id="success" class="hidden text-center space-y-4">
+            <div class="text-6xl mb-4 animate-bounce">✨</div>
+            <h2 class="text-2xl font-bold text-slate-800">Account Created!</h2>
+            <p class="text-slate-500">Your school's digital library is ready to go.</p>
+            <a href="../login/" class="block w-full py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200">Go to Login</a>
+        </div>
+
+        <div id="error-msg" class="mt-4 text-red-500 text-sm text-center hidden font-medium"></div>
+
+        <div class="text-center mt-6">
+            <a href="../login/" class="text-sm text-slate-400 hover:text-blue-600">Already have an account? Sign In</a>
         </div>
     </div>
 
     <script>
-        const API_URL = 'https://1vs0akvj6e.execute-api.us-east-1.amazonaws.com/';
-        let currentState = 'step-email';
-        let userData = { email: '', schoolName: '', schoolAddress: '', password: '', confirmPassword: '' };
+        // Your specific API Gateway URL (make sure it ends with /auth if that's your resource)
+        const API_URL = "https://1vs0akvj6e.execute-api.us-east-1.amazonaws.com/auth"; 
 
-        function render() {
-            const container = document.getElementById('auth-container');
-            container.innerHTML = '';
+        let formData = {
+            email: '',
+            school_info: {}
+        };
+
+        function showStep(step) {
+            ['step-1', 'step-2', 'step-3', 'success'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            document.getElementById(step).classList.remove('hidden');
             
-            switch(currentState) {
-                case 'step-email':
-                    container.innerHTML = `
-                        <div class="space-y-4">
-                            <div class="text-center mb-6">
-                                <h2 class="text-xl font-black text-slate-800">Create Account</h2>
-                            </div>
-                            <input type="email" id="email" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="Email Address" value="${userData.email}">
-                            <button onclick="handleEmail()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl text-sm active:scale-95">Continue</button>
-                            <p class="text-center text-xs text-slate-500 pt-2 font-medium">Have an account? <a href="/login" class="text-blue-600 font-bold">Log In</a></p>
-                        </div>
-                    `;
-                    setupEnter(handleEmail);
-                    break;
-
-                case 'step-school':
-                    container.innerHTML = `
-                        <div class="space-y-4">
-                            <h2 class="text-xl font-black text-slate-800 text-center mb-4">School Details</h2>
-                            <input type="text" id="sn" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="School Name" value="${userData.schoolName}">
-                            <input type="text" id="sa" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="School Address" value="${userData.schoolAddress}">
-                            <button onclick="handleSchool()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl text-sm">Next</button>
-                            <button onclick="goBack('step-email')" class="w-full text-slate-400 text-[10px] font-bold uppercase py-2">Back</button>
-                        </div>
-                    `;
-                    setupEnter(handleSchool);
-                    break;
-
-                case 'step-password':
-                    container.innerHTML = `
-                        <div class="space-y-4">
-                            <h2 class="text-xl font-black text-slate-800 text-center mb-4">Set Password</h2>
-                            <input type="password" id="pw" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="Password">
-                            <input type="password" id="cp" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="Confirm Password">
-                            <button id="btn-final" onclick="handleSignup()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
-                                <span id="btn-text">Create Account</span>
-                                <div id="btn-loader" class="loader hidden" style="border-top-color: white;"></div>
-                            </button>
-                            <button onclick="goBack('step-school')" class="w-full text-slate-400 text-[10px] font-bold uppercase py-2">Back</button>
-                        </div>
-                    `;
-                    setupEnter(handleSignup);
-                    break;
+            const titles = {
+                'step-1': ['Get Started', 'Enter your school email to begin'],
+                'step-2': ['School Details', 'Tell us about your library'],
+                'step-3': ['Secure Your Account', 'Create a strong password']
+            };
+            
+            if (titles[step]) {
+                document.getElementById('step-title').innerText = titles[step][0];
+                document.getElementById('step-sub').innerText = titles[step][1];
+            } else {
+                document.getElementById('step-title').classList.add('hidden');
+                document.getElementById('step-sub').classList.add('hidden');
             }
         }
 
-        function setupEnter(fn) {
-            const ins = document.querySelectorAll('input');
-            ins.forEach(i => i.onkeyup = (e) => { if(e.key === 'Enter') fn(); });
-            ins[0].focus();
-        }
-
-        function goBack(s) { currentState = s; render(); }
-
-        function handleEmail() {
-            userData.email = document.getElementById('email').value.trim();
-            if(userData.email.includes('@')) { currentState = 'step-school'; render(); }
-            else { alert("Please enter a valid email."); }
-        }
-
-        function handleSchool() {
-            userData.schoolName = document.getElementById('sn').value.trim();
-            userData.schoolAddress = document.getElementById('sa').value.trim();
-            if(userData.schoolName && userData.schoolAddress) { currentState = 'step-password'; render(); }
-            else { alert("Please fill in both school name and address."); }
-        }
-
-        async function handleSignup() {
-            const p1 = document.getElementById('pw').value;
-            const p2 = document.getElementById('cp').value;
+        async function goToStep2() {
+            const email = document.getElementById('email').value.trim();
+            if(!email.includes('@')) return showError('Please enter a valid school email');
             
-            if(!p1 || p1.length < 6) { alert("Password must be at least 6 characters."); return; }
-            if(p1 !== p2) { alert("Passwords do not match."); return; }
-
-            userData.password = p1;
-            const btn = document.getElementById('btn-final');
-            const loader = document.getElementById('btn-loader');
-            const btnText = document.getElementById('btn-text');
-            
-            btn.disabled = true; 
-            loader.classList.remove('hidden');
-            btnText.innerText = "Connecting...";
+            const btn = document.getElementById('step1-btn');
+            btn.innerText = "Checking...";
+            btn.disabled = true;
 
             try {
-                const payload = { 
-                    action: 'signup', 
-                    email: userData.email,
-                    password: userData.password,
-                    schoolName: userData.schoolName,
-                    schoolAddress: userData.schoolAddress
-                };
-
                 const res = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({ action: 'check_email', email: email })
                 });
-                
                 const data = await res.json();
-                console.log("Response:", data);
                 
-                if(data.user || data.message || res.ok) {
-                    document.getElementById('auth-container').innerHTML = `
-                        <div class="text-center py-6">
-                            <h2 class="text-xl font-black mb-4">Success!</h2>
-                            <p class="text-xs text-slate-500 mb-6">Your account is ready.</p>
-                            <a href="/login" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold">Log In</a>
-                        </div>`;
+                if(data.exists) {
+                    showError('This email is already registered. Please login.');
+                    btn.innerText = "Continue";
+                    btn.disabled = false;
                 } else {
-                    alert("Server Error: " + (data.error || data.message || "Could not create account."));
-                    btn.disabled = false; loader.classList.add('hidden'); btnText.innerText = "Create Account";
+                    formData.email = email;
+                    showStep('step-2');
+                    hideError();
                 }
-            } catch (e) { 
-                console.error("Fetch error:", e);
-                alert("Network error: Please check your internet or API endpoint.");
-                btn.disabled = false; loader.classList.add('hidden'); btnText.innerText = "Create Account";
+            } catch(e) { 
+                showError('Could not connect to the server. Check your Internet.'); 
+                btn.innerText = "Continue";
+                btn.disabled = false;
             }
         }
 
-        render();
+        function goToStep3() {
+            formData.school_info = {
+                name: document.getElementById('school-name').value.trim(),
+                address: document.getElementById('school-address').value.trim(),
+                city: document.getElementById('city').value.trim(),
+                state: document.getElementById('state').value.trim(),
+                zip: document.getElementById('zip').value.trim()
+            };
+            if(!formData.school_info.name || !formData.school_info.city) return showError('Please fill in school name and city');
+            showStep('step-3');
+            hideError();
+        }
+
+        async function finishSignUp() {
+            const pass = document.getElementById('password').value;
+            const confirm = document.getElementById('confirm-password').value;
+            if(pass !== confirm) return showError('Passwords do not match');
+            if(pass.length < 6) return showError('Password must be at least 6 characters');
+
+            const btn = document.getElementById('finish-btn');
+            btn.innerText = "Saving Account...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'register',
+                        email: formData.email,
+                        password: pass,
+                        school_info: formData.school_info
+                    })
+                });
+                
+                if(res.ok) {
+                    showStep('success');
+                } else {
+                    const d = await res.json();
+                    showError(d.error || 'Registration failed');
+                    btn.disabled = false;
+                    btn.innerText = "Create Account";
+                }
+            } catch(e) { showError('Failed to connect to LibiShelf service'); }
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('error-msg');
+            el.innerText = msg;
+            el.classList.remove('hidden');
+        }
+        function hideError() { document.getElementById('error-msg').classList.add('hidden'); }
     </script>
 </body>
 </html>
