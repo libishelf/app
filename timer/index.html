@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpeedSolve - Cube Timer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .timer-display {
+            transition: color 0.15s ease;
+        }
+
+        .ready { color: #4ade80; } /* Green */
+        .pressing { color: #ef4444; } /* Red */
+        .running { color: #f8fafc; } /* White */
+        .idle { color: #22d3ee; } /* Cyan */
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
+        
+        <!-- Sidebar: Stats & History -->
+        <div class="lg:col-span-1 space-y-6 order-2 lg:order-1">
+            <!-- Stats Card -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-cyan-400">
+                    📊 Statistics
+                </h2>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center p-3 bg-slate-800/50 rounded-xl">
+                        <span class="text-slate-400 text-sm">Best Time</span>
+                        <span id="pb-display" class="mono text-lg text-yellow-400 font-bold">--</span>
+                    </div>
+                    <div class="flex justify-between items-center p-3 bg-slate-800/50 rounded-xl">
+                        <span class="text-slate-400 text-sm">Avg of 5</span>
+                        <span id="ao5-display" class="mono text-md">--</span>
+                    </div>
+                    <div class="flex justify-between items-center p-3 bg-slate-800/50 rounded-xl">
+                        <span class="text-slate-400 text-sm">Avg of 12</span>
+                        <span id="ao12-display" class="mono text-md">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Card -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col max-h-[500px]">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-cyan-400">
+                    ⏱️ History
+                </h2>
+                <div id="history-list" class="flex-1 overflow-y-auto space-y-2 pr-2">
+                    <!-- History items injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Area -->
+        <div class="lg:col-span-3 space-y-8 order-1 lg:order-2">
+            <header class="flex justify-between items-center">
+                <h1 class="text-3xl font-black italic tracking-tighter bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+                    SPEEDSOLVE HTML
+                </h1>
+                <div class="text-xs text-slate-500 mono bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
+                    LOCAL STORAGE ACTIVE
+                </div>
+            </header>
+
+            <!-- Scramble Area -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl relative overflow-hidden group">
+                <div class="absolute top-0 left-0 w-1 h-full bg-cyan-500"></div>
+                <div class="flex justify-between items-start mb-2">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">3x3 Scramble</span>
+                    <button onclick="ui.refreshScramble()" class="text-slate-500 hover:text-cyan-400 transition-colors">
+                        🔄
+                    </button>
+                </div>
+                <p id="scramble-text" class="text-xl md:text-2xl mono text-center leading-relaxed text-slate-200">
+                    Generating...
+                </p>
+            </div>
+
+            <!-- Timer Area -->
+            <div class="flex flex-col items-center justify-center py-20 min-h-[400px]">
+                <div id="timer" class="timer-display idle text-8xl md:text-[12rem] font-black mono tabular-nums">
+                    0.00
+                </div>
+                
+                <div id="instruction" class="mt-8 text-slate-500 text-lg font-medium flex items-center gap-3">
+                    <span class="px-2 py-1 bg-slate-800 rounded text-xs">SPACE</span>
+                    Hold to Ready, Release to Start
+                </div>
+            </div>
+
+            <!-- Tips -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="p-4 bg-slate-900/50 border border-slate-800 rounded-xl text-sm">
+                    <p class="font-bold text-slate-300">💡 Tip</p>
+                    <p class="text-slate-500">Your data is saved to this browser. If you clear your browser cache, your times will be deleted.</p>
+                </div>
+                <div class="p-4 bg-slate-900/50 border border-slate-800 rounded-xl text-sm">
+                    <p class="font-bold text-slate-300">🏁 Stackmat Rules</p>
+                    <p class="text-slate-500">Hold Space for 150ms until the timer turns green to ensure a valid start.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Core Logic ---
+        const state = {
+            solves: JSON.parse(localStorage.getItem('cubeSolves')) || [],
+            isRunning: false,
+            isPressing: false,
+            isReady: false,
+            startTime: 0,
+            interval: null,
+            currentScramble: ""
+        };
+
+        const scrambleGen = {
+            moves: ["U", "D", "L", "R", "F", "B"],
+            mods: ["", "'", "2"],
+            generate() {
+                let s = [];
+                let last = "";
+                while(s.length < 20) {
+                    let m = this.moves[Math.floor(Math.random() * 6)];
+                    if(m !== last) {
+                        s.push(m + this.mods[Math.floor(Math.random() * 3)]);
+                        last = m;
+                    }
+                }
+                state.currentScramble = s.join(" ");
+                return state.currentScramble;
+            }
+        };
+
+        const ui = {
+            timerEl: document.getElementById('timer'),
+            scrambleEl: document.getElementById('scramble-text'),
+            instructionEl: document.getElementById('instruction'),
+            historyEl: document.getElementById('history-list'),
+            pbEl: document.getElementById('pb-display'),
+            ao5El: document.getElementById('ao5-display'),
+            ao12El: document.getElementById('ao12-display'),
+
+            updateDisplay(ms) {
+                this.timerEl.innerText = (ms / 1000).toFixed(2);
+            },
+
+            refreshScramble() {
+                this.scrambleEl.innerText = scrambleGen.generate();
+            },
+
+            updateStats() {
+                if (state.solves.length === 0) {
+                    this.pbEl.innerText = "--";
+                    this.ao5El.innerText = "--";
+                    this.ao12El.innerText = "--";
+                    return;
+                }
+                
+                // Best (Recalculated every time history changes)
+                const times = state.solves.map(s => s.time);
+                const best = Math.min(...times);
+                this.pbEl.innerText = (best / 1000).toFixed(2);
+
+                // Averages
+                const calcAvg = (n) => {
+                    if (state.solves.length < n) return "--";
+                    const lastN = state.solves.slice(0, n);
+                    const sum = lastN.reduce((acc, curr) => acc + curr.time, 0);
+                    return (sum / (n * 1000)).toFixed(2);
+                };
+
+                this.ao5El.innerText = calcAvg(5);
+                this.ao12El.innerText = calcAvg(12);
+            },
+
+            renderHistory() {
+                this.historyEl.innerHTML = state.solves.length === 0 
+                    ? '<p class="text-center py-10 text-slate-600 italic text-sm">No solves yet</p>'
+                    : state.solves.map((s, idx) => `
+                        <div class="group flex justify-between items-center p-3 bg-slate-800/30 hover:bg-slate-800 rounded-lg transition-all">
+                            <span class="mono text-lg">${(s.time / 1000).toFixed(2)}s</span>
+                            <button onclick="actions.deleteSolve(${idx})" class="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 px-2">
+                                ✕
+                            </button>
+                        </div>
+                    `).join('');
+            }
+        };
+
+        const actions = {
+            start() {
+                state.isRunning = true;
+                state.startTime = Date.now();
+                ui.timerEl.className = "timer-display running text-8xl md:text-[12rem] font-black mono tabular-nums";
+                ui.instructionEl.innerText = "Press Space to Stop";
+                state.interval = setInterval(() => {
+                    ui.updateDisplay(Date.now() - state.startTime);
+                }, 10);
+            },
+
+            stop() {
+                clearInterval(state.interval);
+                state.isRunning = false;
+                const finalTime = Date.now() - state.startTime;
+                
+                state.solves.unshift({
+                    time: finalTime,
+                    scramble: state.currentScramble,
+                    date: Date.now()
+                });
+                
+                localStorage.setItem('cubeSolves', JSON.stringify(state.solves));
+                
+                ui.timerEl.className = "timer-display idle text-8xl md:text-[12rem] font-black mono tabular-nums";
+                ui.instructionEl.innerHTML = `<span class="px-2 py-1 bg-slate-800 rounded text-xs">SPACE</span> Hold to Ready`;
+                ui.refreshScramble();
+                ui.renderHistory();
+                ui.updateStats();
+            },
+
+            deleteSolve(index) {
+                state.solves.splice(index, 1);
+                localStorage.setItem('cubeSolves', JSON.stringify(state.solves));
+                ui.renderHistory();
+                ui.updateStats(); // This now correctly handles resetting Best Time
+            }
+        };
+
+        // --- Event Listeners ---
+        let readyTimeout;
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code !== 'Space') return;
+            e.preventDefault();
+
+            if (state.isRunning) {
+                actions.stop();
+                return;
+            }
+
+            if (!state.isPressing) {
+                state.isPressing = true;
+                ui.timerEl.classList.remove('idle');
+                ui.timerEl.classList.add('pressing');
+                
+                readyTimeout = setTimeout(() => {
+                    state.isReady = true;
+                    ui.timerEl.classList.remove('pressing');
+                    ui.timerEl.classList.add('ready');
+                }, 150);
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code !== 'Space') return;
+            
+            clearTimeout(readyTimeout);
+            
+            if (state.isReady && !state.isRunning) {
+                actions.start();
+            } else {
+                ui.timerEl.className = "timer-display idle text-8xl md:text-[12rem] font-black mono tabular-nums";
+            }
+            
+            state.isPressing = false;
+            state.isReady = false;
+        });
+
+        // --- Init ---
+        ui.refreshScramble();
+        ui.renderHistory();
+        ui.updateStats();
+
+    </script>
+</body>
+</html>
